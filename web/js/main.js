@@ -146,6 +146,7 @@
     else if (e.key === "ArrowLeft") step(-1);
     else if (e.key === "p") G.wallpaper.setPanel(!state.showPanel);
   });
+  addEventListener("click", () => step(1)); // tarayıcıda tıklayınca sonraki tema (uygulamada pencere tıklama almaz)
   addEventListener("resize", resize);
 
   setInterval(simulate, 1000);

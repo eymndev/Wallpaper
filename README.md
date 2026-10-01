@@ -58,7 +58,7 @@ defaults write dev.eymn.ascii-wallpaper longitude -float 32.86
 
 `web/index.html` dosyasını tarayıcıda açman yeterli. Uygulama dışında örnek veri gösterilir.
 
-- `←` / `→` temalar arasında gezer, `p` paneli açıp kapatır
+- `←` / `→` ya da tıklama temalar arasında gezer, `p` paneli açıp kapatır
 - `index.html?theme=fire` belirli bir temayla açar, `?panel=0` paneli gizler
 
 ## Yeni tema eklemek
