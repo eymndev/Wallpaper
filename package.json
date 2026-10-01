@@ -1,0 +1,8 @@
+{
+  "name": "ascii-wallpaper",
+  "private": true,
+  "description": "macOS için ASCII karakterlerle çizilen hareketli, istatistikli duvar kağıdı",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  }
+}

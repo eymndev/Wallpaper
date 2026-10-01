@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  web:
+    name: Temalar (Node)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Sözdizimi kontrolü
+        run: for f in web/js/*.js web/js/themes/*.js; do node --check "$f"; done
+      - name: Tema testleri
+        run: node --test tests/*.test.mjs
+
+  mac:
+    name: macOS uygulaması
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Derle
+        run: ./scripts/build-app.sh
+      - name: Paketle
+        run: cd build && ditto -c -k --keepParent "ASCII Wallpaper.app" ASCII-Wallpaper.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ASCII-Wallpaper
+          path: build/ASCII-Wallpaper.zip

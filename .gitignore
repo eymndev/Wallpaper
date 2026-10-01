@@ -1,0 +1,5 @@
+.DS_Store
+build/
+mac/.build/
+mac/.swiftpm/
+node_modules/
