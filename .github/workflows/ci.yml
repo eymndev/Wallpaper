@@ -25,9 +25,18 @@ jobs:
       - uses: actions/checkout@v4
       - name: Derle
         run: ./scripts/build-app.sh
+      - name: Ekran koruyucuyu derle
+        run: ./scripts/build-saver.sh
       - name: Paketle
-        run: cd build && ditto -c -k --keepParent "ASCII Wallpaper.app" ASCII-Wallpaper.zip
+        run: |
+          cd build
+          ditto -c -k --keepParent "ASCII Wallpaper.app" ASCII-Wallpaper.zip
+          ditto -c -k --keepParent "ASCII Wallpaper.saver" ASCII-Wallpaper-Saver.zip
       - uses: actions/upload-artifact@v4
         with:
           name: ASCII-Wallpaper
           path: build/ASCII-Wallpaper.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ASCII-Wallpaper-Saver
+          path: build/ASCII-Wallpaper-Saver.zip

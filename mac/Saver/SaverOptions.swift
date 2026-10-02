@@ -1,0 +1,105 @@
+import AppKit
+import ScreenSaver
+
+/// Ekran koruyucu ayarları (Sistem Ayarları → Ekran Koruyucu → Seçenekler).
+struct SaverSettings {
+    static let random = "__random__"
+    private static let module = "dev.eymn.ascii-wallpaper.saver"
+
+    private let defaults: UserDefaults = ScreenSaverDefaults(forModuleWithName: SaverSettings.module) ?? .standard
+
+    /// Tema kimliği, rastgele için `random`
+    var theme: String {
+        get { defaults.string(forKey: "theme") ?? SaverSettings.random }
+        nonmutating set { defaults.set(newValue, forKey: "theme"); defaults.synchronize() }
+    }
+
+    var showPanel: Bool {
+        get { defaults.object(forKey: "showPanel") as? Bool ?? false }
+        nonmutating set { defaults.set(newValue, forKey: "showPanel"); defaults.synchronize() }
+    }
+
+    var showClock: Bool {
+        get { defaults.object(forKey: "showClock") as? Bool ?? true }
+        nonmutating set { defaults.set(newValue, forKey: "showClock"); defaults.synchronize() }
+    }
+
+    /// Tema listesi: index.html'deki sıraya göre tema dosyalarındaki `id` / `name` çiftleri.
+    static func themes(in web: URL) -> [(id: String, name: String)] {
+        guard let html = try? String(contentsOf: web.appendingPathComponent("index.html"), encoding: .utf8) else { return [] }
+        let scriptPattern = try! NSRegularExpression(pattern: #"src="(js/themes/[^"]+\.js)""#)
+        let themePattern = try! NSRegularExpression(pattern: #"id:\s*"([^"]+)",\s*name:\s*"([^"]+)""#)
+        var result: [(String, String)] = []
+        for match in scriptPattern.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
+            guard let range = Range(match.range(at: 1), in: html),
+                  let js = try? String(contentsOf: web.appendingPathComponent(String(html[range])), encoding: .utf8)
+            else { continue }
+            for m in themePattern.matches(in: js, range: NSRange(js.startIndex..., in: js)) {
+                if let id = Range(m.range(at: 1), in: js), let name = Range(m.range(at: 2), in: js) {
+                    result.append((String(js[id]), String(js[name])))
+                }
+            }
+        }
+        return result
+    }
+}
+
+/// Seçenekler penceresi: tema, sistem paneli ve saat.
+@MainActor
+final class SaverOptions: NSObject {
+    let window: NSWindow
+    private let settings = SaverSettings()
+    private let popup = NSPopUpButton()
+    private let panelBox = NSButton(checkboxWithTitle: "Sistem panelini göster", target: nil, action: nil)
+    private let clockBox = NSButton(checkboxWithTitle: "Saati göster", target: nil, action: nil)
+    private let themes: [(id: String, name: String)]
+
+    init(themes: [(id: String, name: String)]) {
+        self.themes = themes
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 360, height: 170), styleMask: [.titled], backing: .buffered, defer: true)
+        super.init()
+
+        popup.addItem(withTitle: "Rastgele (her açılışta)")
+        popup.menu?.addItem(.separator())
+        for theme in themes { popup.addItem(withTitle: theme.name) }
+        if let index = themes.firstIndex(where: { $0.id == settings.theme }) {
+            popup.selectItem(at: index + 2)
+        }
+        panelBox.state = settings.showPanel ? .on : .off
+        clockBox.state = settings.showClock ? .on : .off
+
+        let label = NSTextField(labelWithString: "Tema:")
+        let done = NSButton(title: "Tamam", target: self, action: #selector(save))
+        done.keyEquivalent = "\r"
+        let cancel = NSButton(title: "Vazgeç", target: self, action: #selector(close))
+        cancel.keyEquivalent = "\u{1b}"
+
+        let row = NSStackView(views: [label, popup])
+        let buttons = NSStackView(views: [cancel, done])
+        let stack = NSStackView(views: [row, panelBox, clockBox, buttons])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 12
+        stack.edgeInsets = NSEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
+        stack.setCustomSpacing(20, after: clockBox)
+        buttons.translatesAutoresizingMaskIntoConstraints = false
+        window.contentView = stack
+        NSLayoutConstraint.activate([buttons.trailingAnchor.constraint(equalTo: stack.trailingAnchor, constant: -20)])
+    }
+
+    @objc private func save() {
+        let index = popup.indexOfSelectedItem
+        settings.theme = index >= 2 && index - 2 < themes.count ? themes[index - 2].id : SaverSettings.random
+        settings.showPanel = panelBox.state == .on
+        settings.showClock = clockBox.state == .on
+        close()
+    }
+
+    @objc private func close() {
+        if let parent = window.sheetParent {
+            parent.endSheet(window)
+        } else {
+            window.close()
+        }
+    }
+}
