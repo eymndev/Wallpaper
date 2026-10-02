@@ -22,6 +22,22 @@ Görünüşün tamamı `web/` klasöründeki HTML/CSS/JS ile yapılır. `mac/` k
 | `synthwave` | Synthwave | İndirme hızı yolu hızlandırır |
 | `aquarium` | Akvaryum | RAM doldukça kabarcık artar |
 
+### Hyprland yarışma kazananları
+
+[Hyprland duvar kağıdı yarışmasının](https://hypr.land/news/contestWinners) dokuz kazanan görseli ASCII'ye çevrildi. Her biri görselin kendisinden üretilir ve üstüne hafif bir animasyon eklenir; CPU yükseldikçe animasyon hızlanır. Bu temalar ayrıntı görünsün diye daha küçük yazıyla (daha sık ızgarayla) çizilir.
+
+| Kimlik | Sanatçı | Animasyon |
+| --- | --- | --- |
+| `hypr-honkadaloonga` | Honkadaloonga | Cam kırıkları parıldar, çapraz ışık geçer |
+| `hypr-kath` | Kath | Neon kediler nabız gibi parlar, pencere ışıkları titrer |
+| `hypr-end4` | end_4 | Logo parlar, karanlıkta veri çizgileri akar |
+| `hypr-alba4k` | alba4k | Hata ekranındaki yüzde ilerler (69'da biraz takılır) |
+| `hypr-corndog` | corndog | Gemideki tabelada gerçek saat, ışıklar titrer |
+| `hypr-meptl` | Meptl | Avuçlardaki ışık dalgalanır, zerreler yükselir |
+| `hypr-sollee` | Sollee | Küçük gezegen yörüngede döner, halkalar dalgalanır |
+| `hypr-srev` | srev | Sarı ve turkuaz ayrıntılar parlar, ışık süpürür |
+| `hypr-vdawg` | VDawg | Ekranlar titrer, ışık huzmesinden zerreler yükselir |
+
 ## Mac'te kurulum
 
 Xcode veya Xcode Command Line Tools (`xcode-select --install`) gerekir, macOS 13 ve sonrası desteklenir.
@@ -43,6 +59,22 @@ Uygulama Dock'ta görünmez. Menü çubuğundaki ızgara simgesinden şunları y
 - Oturum açılışında otomatik başlatmak
 
 Çalan şarkıyı ilk kez okurken macOS, Spotify veya Müzik için otomasyon izni ister.
+
+## Ekran koruyucu
+
+Aynı temalar macOS ekran koruyucusu olarak da var:
+
+```bash
+./scripts/build-saver.sh --install
+```
+
+Bu komut `build/ASCII Wallpaper.saver` dosyasını derleyip `~/Library/Screen Savers` içine kopyalar. Sonra Sistem Ayarları → Ekran Koruyucu'dan "ASCII Wallpaper"ı seç. "Seçenekler" düğmesinden tema (ya da her açılışta rastgele tema), sistem paneli ve saat ayarlanır. Ekran koruyucu CPU, RAM, pil ve ağ bilgisini gösterir; çalan şarkı ve hava durumu yalnızca duvar kağıdı uygulamasında var.
+
+Derlemek istemezsen GitHub Actions'taki "ASCII-Wallpaper-Saver" çıktısını indirip `.saver` dosyasına çift tıklayabilirsin. İmzasız olduğu için macOS engellerse önce şunu çalıştır:
+
+```bash
+xattr -dr com.apple.quarantine "ASCII Wallpaper.saver"
+```
 
 ### Hava durumu konumu
 
@@ -83,6 +115,16 @@ defaults write dev.eymn.ascii-wallpaper longitude -float 32.86
 })(globalThis);
 ```
 
+### Görselden tema
+
+Bir görseli tema verisine çevirmek için (Pillow gerekir):
+
+```bash
+python3 scripts/encode-image.py gorsel.png benim-tema
+```
+
+Bu `web/js/themes/hypr/benim-tema.data.js` dosyasını üretir. Dosyayı `index.html`'e `js/image.js`'ten sonra ekle ve `AW.imageTheme({ id, name, image: "benim-tema", bg, glow, sweep, ... })` ile kaydet; seçeneklerin örnekleri `web/js/themes/hypr.js` içinde.
+
 `npm test` her temayı farklı ekran boyutlarında tarayıcı olmadan çalıştırıp hatasız çizdiğini kontrol eder.
 
 ## Yapı
@@ -90,6 +132,7 @@ defaults write dev.eymn.ascii-wallpaper longitude -float 32.86
 ```
 web/            Duvar kağıdı sayfası (motor, arayüz, temalar)
 mac/            Swift uygulaması (masaüstü penceresi, istatistikler, menü)
-scripts/        Uygulama paketini derleme betiği
+mac/Saver/      Ekran koruyucu (.saver)
+scripts/        Uygulama ve ekran koruyucu derleme, görselden tema üretme betikleri
 tests/          Tema testleri
 ```

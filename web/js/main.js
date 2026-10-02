@@ -21,7 +21,7 @@
 
   const state = {
     theme: null, themeState: null, grid: new AW.Grid(10, 10),
-    cw: 8, ch: 16, showPanel: params.get("panel") !== "0" && store.get("panel") !== "0",
+    cw: 8, ch: 16, fontScale: 1, showPanel: params.get("panel") !== "0" && store.get("panel") !== "0",
     showClock: params.get("clock") !== "0", paused: false,
     toast: "", toastUntil: 0, t: 0, lastFrame: 0, lastDraw: 0,
   };
@@ -48,7 +48,9 @@
 
   function setTheme(id, announce = true) {
     state.theme = findTheme(id);
-    state.themeState = state.theme.init ? state.theme.init(state.grid, S) || {} : {};
+    // Görsel temalar daha sık bir ızgara (küçük yazı) isteyebilir
+    if ((state.theme.fontScale || 1) !== state.fontScale) resize();
+    else initTheme();
     document.body.style.background = state.theme.bg || "#000";
     store.set("theme", state.theme.id);
     if (announce) {
@@ -56,6 +58,10 @@
       state.toastUntil = state.t + 2.5;
     }
     if (native) native.postMessage({ type: "theme", id: state.theme.id });
+  }
+
+  function initTheme() {
+    state.themeState = state.theme.init ? state.theme.init(state.grid, S) || {} : {};
   }
 
   function step(delta) {
@@ -68,13 +74,14 @@
     canvas.width = Math.round(innerWidth * dpr);
     canvas.height = Math.round(innerHeight * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const fs = AW.clamp(innerWidth / 110, 10, 16);
+    state.fontScale = (state.theme && state.theme.fontScale) || 1;
+    const fs = AW.clamp((innerWidth / 110) * state.fontScale, Math.max(8, 10 * state.fontScale), 16);
     ctx.font = `${fs}px ${FONT_STACK}`;
     ctx.textBaseline = "top";
     state.cw = ctx.measureText("M").width;
     state.ch = Math.round(fs * 1.18);
     state.grid.resize(Math.ceil(innerWidth / state.cw), Math.ceil(innerHeight / state.ch), state.cw / state.ch);
-    if (state.theme) setTheme(state.theme.id, false);
+    if (state.theme) initTheme();
   }
 
   function render() {

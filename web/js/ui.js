@@ -26,6 +26,8 @@
     ":": ["   ", " █ ", "   ", " █ ", "   "],
   };
 
+  AW.bigFont = FONT;
+
   // Büyük rakamlar: her "piksel" iki hücre genişliğinde
   function bigText(g, x, y, s, col, showColon) {
     let cx = x;
@@ -108,16 +110,18 @@
     let bottom = cy;
 
     if (opts.showClock !== false && g.cols >= 40 && g.rows >= 14) {
+      // Görselin önemli kısmı sol üstteyse tema saati sol alta alabilir
+      const ky = ui.clockBottom && g.rows >= 30 ? g.rows - 14 : cy;
       const hh = String(now.getHours()).padStart(2, "0");
       const mm = String(now.getMinutes()).padStart(2, "0");
       const blink = opts.reduceMotion || now.getSeconds() % 2 === 0;
       const date = now.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).toLocaleLowerCase("tr-TR");
       const w = Math.max(38, date.length);
-      g.fillBg(cx - 2, cy - 1, w + 4, 10, ui.panel);
-      bigText(g, cx, cy, hh + ":" + mm, ui.ink, blink);
-      g.put(cx, cy + 6, date, ui.dim);
-      g.put(cx, cy + 7, "─".repeat(date.length), ui.frame);
-      bottom = cy + 10;
+      g.fillBg(cx - 2, ky - 1, w + 4, 10, ui.panel);
+      bigText(g, cx, ky, hh + ":" + mm, ui.ink, blink);
+      g.put(cx, ky + 6, date, ui.dim);
+      g.put(cx, ky + 7, "─".repeat(date.length), ui.frame);
+      if (ky === cy) bottom = cy + 10;
     }
 
     if (opts.showPanel !== false && g.cols >= 40 && g.rows >= 20) {
