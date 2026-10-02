@@ -42,23 +42,45 @@ Görünüşün tamamı `web/` klasöründeki HTML/CSS/JS ile yapılır. `mac/` k
 
 Xcode veya Xcode Command Line Tools (`xcode-select --install`) gerekir, macOS 13 ve sonrası desteklenir.
 
+En kolayı [riceutil](https://github.com/eymndev/riceutil-macos) ile:
+
+```bash
+riceutil wallpaper install
+```
+
+Elle kurmak için:
+
 ```bash
 git clone https://github.com/eymndev/Wallpaper.git
 cd Wallpaper
-./scripts/build-app.sh
-open "build/ASCII Wallpaper.app"
+./scripts/install.sh
 ```
 
-İstersen `build/ASCII Wallpaper.app` dosyasını Uygulamalar klasörüne taşı. Derlemek istemezsen GitHub Actions'taki her başarılı derlemenin "ASCII-Wallpaper" çıktısından hazır paketi indirebilirsin. İmzasız olduğu için ilk açılışta sağ tık → Aç demen gerekir.
+`scripts/install.sh` uygulamayı derleyip `~/Applications/ASCII Wallpaper.app` olarak kurar, ekran koruyucuyu kurar ve uygulamayı başlatır. Güncellemek için `git pull` sonrası aynı komutu çalıştırman yeter (çalışan kopyayı kendisi kapatır). Yalnızca derlemek istersen `./scripts/build-app.sh` uygulamayı `build/` içine üretir. Derlemek istemezsen GitHub Actions'taki her başarılı derlemenin "ASCII-Wallpaper" çıktısından hazır paketi indirebilirsin. İmzasız olduğu için ilk açılışta sağ tık → Aç demen gerekir.
 
 Uygulama Dock'ta görünmez. Menü çubuğundaki ızgara simgesinden şunları yapabilirsin:
 
 - Tema seçmek ya da sonraki temaya geçmek
 - Temaları 10 dakikada, 30 dakikada ya da saatte bir otomatik değiştirmek
-- Sistem panelini ve saati açıp kapatmak
+- Sistem panelini, saati ve sağ alt köşedeki tema adını açıp kapatmak
 - Oturum açılışında otomatik başlatmak
 
 Çalan şarkıyı ilk kez okurken macOS, Spotify veya Müzik için otomasyon izni ister.
+
+## riceutil ile yönetmek
+
+[riceutil](https://github.com/eymndev/riceutil-macos) duvar kağıdını terminalden ve kendi GUI'sinden yönetir:
+
+```bash
+riceutil wallpaper themes          # temaları listeler, etkin olanı işaretler
+riceutil wallpaper theme fire      # temayı değiştirir
+riceutil wallpaper next            # sonraki tema
+riceutil wallpaper name off        # köşedeki tema adını gizler
+riceutil wallpaper start | stop    # başlatır / kapatır
+riceutil wallpaper update          # depoyu çekip yeniden derler ve kurar
+```
+
+Çalışan uygulama bu komutları `dev.eymn.ascii-wallpaper.command` dağıtık bildirimiyle alır. `userInfo` anahtarları metindir: `theme` (tema kimliği), `next`, `panel` / `clock` / `name` (`1` ya da `0`) ve `rotate` (dakika). Tema listesi `web/themes.tsv` dosyasındadır (`kimlik<TAB>ad`).
 
 ## Ekran koruyucu
 
@@ -68,7 +90,7 @@ Aynı temalar macOS ekran koruyucusu olarak da var:
 ./scripts/build-saver.sh --install
 ```
 
-Bu komut `build/ASCII Wallpaper.saver` dosyasını derleyip `~/Library/Screen Savers` içine kopyalar. Sonra Sistem Ayarları → Ekran Koruyucu'dan "ASCII Wallpaper"ı seç. "Seçenekler" düğmesinden tema (ya da her açılışta rastgele tema), sistem paneli ve saat ayarlanır. Ekran koruyucu CPU, RAM, pil ve ağ bilgisini gösterir; çalan şarkı ve hava durumu yalnızca duvar kağıdı uygulamasında var.
+Bu komut `build/ASCII Wallpaper.saver` dosyasını derleyip `~/Library/Screen Savers` içine kopyalar. Sonra Sistem Ayarları → Ekran Koruyucu'dan "ASCII Wallpaper"ı seç. "Seçenekler" düğmesinden tema (ya da her açılışta rastgele tema), sistem paneli, saat ve köşedeki tema adı ayarlanır. Ekran koruyucu CPU, RAM, pil ve ağ bilgisini gösterir; çalan şarkı ve hava durumu yalnızca duvar kağıdı uygulamasında var.
 
 Derlemek istemezsen GitHub Actions'taki "ASCII-Wallpaper-Saver" çıktısını indirip `.saver` dosyasına çift tıklayabilirsin. İmzasız olduğu için macOS engellerse önce şunu çalıştır:
 
@@ -90,8 +112,8 @@ defaults write dev.eymn.ascii-wallpaper longitude -float 32.86
 
 `web/index.html` dosyasını tarayıcıda açman yeterli. Uygulama dışında örnek veri gösterilir.
 
-- `←` / `→` ya da tıklama temalar arasında gezer, `p` paneli açıp kapatır
-- `index.html?theme=fire` belirli bir temayla açar, `?panel=0` paneli gizler
+- `←` / `→` ya da tıklama temalar arasında gezer, `p` paneli, `n` tema adını açıp kapatır
+- `index.html?theme=fire` belirli bir temayla açar, `?panel=0` paneli, `?name=0` tema adını gizler
 
 ## Yeni tema eklemek
 
@@ -125,6 +147,8 @@ python3 scripts/encode-image.py gorsel.png benim-tema
 
 Bu `web/js/themes/hypr/benim-tema.data.js` dosyasını üretir. Dosyayı `index.html`'e `js/image.js`'ten sonra ekle ve `AW.imageTheme({ id, name, image: "benim-tema", bg, glow, sweep, ... })` ile kaydet; seçeneklerin örnekleri `web/js/themes/hypr.js` içinde.
 
+Tema ekledikten sonra `node scripts/themes-manifest.mjs` ile `web/themes.tsv` listesini güncelle (riceutil temaları buradan okur).
+
 `npm test` her temayı farklı ekran boyutlarında tarayıcı olmadan çalıştırıp hatasız çizdiğini kontrol eder.
 
 ## Yapı
@@ -133,6 +157,6 @@ Bu `web/js/themes/hypr/benim-tema.data.js` dosyasını üretir. Dosyayı `index.
 web/            Duvar kağıdı sayfası (motor, arayüz, temalar)
 mac/            Swift uygulaması (masaüstü penceresi, istatistikler, menü)
 mac/Saver/      Ekran koruyucu (.saver)
-scripts/        Uygulama ve ekran koruyucu derleme, görselden tema üretme betikleri
+scripts/        Derleme, kurulum, tema listesi ve görselden tema üretme betikleri
 tests/          Tema testleri
 ```

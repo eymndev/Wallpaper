@@ -45,7 +45,7 @@ for (const theme of AW.themes) {
         S.cpu = (f * 7) % 100; S.down = (f * 3) % 30;
         g.clear();
         theme.frame(g, f * 0.05, 0.05, S, st);
-        AW.drawUI(g, new Date(2026, 9, 1, 20, 30, f % 60), f * 0.05, S, theme.ui, { showPanel: true, toast: "tema", toastUntil: 99 });
+        AW.drawUI(g, new Date(2026, 9, 1, 20, 30, f % 60), f * 0.05, S, theme.ui, { showPanel: true, themeName: theme.name, toast: "tema", toastUntil: 99 });
         for (let i = 0; i < g.ch.length; i++) {
           const c = g.ch[i];
           assert.equal(typeof c, "string", `${theme.id}: karakter metin değil`);

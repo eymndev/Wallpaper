@@ -66,8 +66,8 @@ final class AsciiEngine {
         api.invokeMethod("resize", withArguments: [cols, rows, aspect])
     }
 
-    func setOptions(panel: Bool, clock: Bool) {
-        api.invokeMethod("setOptions", withArguments: [panel, clock])
+    func setOptions(panel: Bool, clock: Bool, themeName: Bool) {
+        api.invokeMethod("setOptions", withArguments: [panel, clock, themeName])
     }
 
     func update(_ stats: [String: Any]) {

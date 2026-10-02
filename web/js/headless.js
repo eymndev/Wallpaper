@@ -9,7 +9,7 @@
     cpu: 20, ram: 8, ramTotal: 16, battery: null, charging: false, onBattery: false,
     down: 0, up: 0, cpuHist: Array(40).fill(20), netHist: Array(40).fill(0), track: "", weather: "", live: true,
   };
-  const st = { grid: new AW.Grid(10, 10), theme: null, themeState: null, t: 0, showPanel: false, showClock: true };
+  const st = { grid: new AW.Grid(10, 10), theme: null, themeState: null, t: 0, showPanel: false, showClock: true, showThemeName: true };
   let base = [0, 0, 0];
   let cache = new Map();
 
@@ -68,9 +68,10 @@
       st.grid.resize(cols, rows, aspect);
       if (st.theme) initTheme();
     },
-    setOptions(panel, clock) {
+    setOptions(panel, clock, name) {
       st.showPanel = !!panel;
       st.showClock = !!clock;
+      st.showThemeName = name !== false;
     },
     update(d) {
       Object.assign(S, d);
@@ -82,7 +83,9 @@
       st.t += dt;
       g.clear();
       st.theme.frame(g, st.t, dt, S, st.themeState);
-      AW.drawUI(g, new Date(), st.t, S, st.theme.ui, { showPanel: st.showPanel, showClock: st.showClock });
+      AW.drawUI(g, new Date(), st.t, S, st.theme.ui, {
+        showPanel: st.showPanel, showClock: st.showClock, themeName: st.theme.name, showThemeName: st.showThemeName,
+      });
       const n = g.cols * g.rows, out = new Array(n * 5);
       for (let k = 0, o = 0; k < n; k++, o += 5) {
         let c = g.ch[k].charCodeAt(0) || 32;

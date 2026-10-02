@@ -22,7 +22,7 @@
   const state = {
     theme: null, themeState: null, grid: new AW.Grid(10, 10),
     cw: 8, ch: 16, fontScale: 1, showPanel: params.get("panel") !== "0" && store.get("panel") !== "0",
-    showClock: params.get("clock") !== "0", paused: false,
+    showClock: params.get("clock") !== "0", showThemeName: params.get("name") !== "0", paused: false,
     toast: "", toastUntil: 0, t: 0, lastFrame: 0, lastDraw: 0,
   };
 
@@ -111,6 +111,7 @@
     state.theme.frame(g, state.t, dt, S, state.themeState);
     AW.drawUI(g, new Date(), state.t, S, state.theme.ui, {
       showPanel: state.showPanel, showClock: state.showClock, reduceMotion,
+      themeName: state.theme.name, showThemeName: state.showThemeName,
       toast: state.toast, toastUntil: state.toastUntil,
     });
     render();
@@ -143,6 +144,7 @@
     nextTheme: () => step(1),
     setPanel(on) { state.showPanel = !!on; store.set("panel", on ? "1" : "0"); },
     setClock(on) { state.showClock = !!on; },
+    setThemeName(on) { state.showThemeName = !!on; },
     setPaused(on) { state.paused = !!on; },
     listThemes: () => AW.themes.map((t) => ({ id: t.id, name: t.name })),
     currentTheme: () => state.theme.id,
@@ -152,6 +154,7 @@
     if (e.key === "ArrowRight") step(1);
     else if (e.key === "ArrowLeft") step(-1);
     else if (e.key === "p") G.wallpaper.setPanel(!state.showPanel);
+    else if (e.key === "n") G.wallpaper.setThemeName(!state.showThemeName);
   });
   addEventListener("click", () => step(1)); // tarayıcıda tıklayınca sonraki tema (uygulamada pencere tıklama almaz)
   addEventListener("resize", resize);
