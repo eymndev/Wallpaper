@@ -25,6 +25,39 @@ jobs:
       - uses: actions/checkout@v4
       - name: Derle
         run: ./scripts/build-app.sh
+      - name: Dışarıdan komutla tema değiştir (riceutil'in kullandığı bildirim)
+        run: |
+          defaults write dev.eymn.ascii-wallpaper theme lake
+          open "build/ASCII Wallpaper.app"
+          sleep 8
+          pgrep -x AsciiWallpaper
+          send() {
+            osascript -l JavaScript -e '
+              function run(argv) {
+                ObjC.import("Foundation");
+                var info = $.NSMutableDictionary.alloc.init;
+                for (var i = 0; i + 1 < argv.length; i += 2) info.setObjectForKey(argv[i + 1], argv[i]);
+                $.NSDistributedNotificationCenter.defaultCenter.postNotificationNameObjectUserInfoDeliverImmediately(
+                  "dev.eymn.ascii-wallpaper.command", null, info, true);
+              }' "$@" >/dev/null
+          }
+          send theme hypr-kath name 1
+          sleep 3
+          screencapture -x build/app-hypr-kath.png || true
+          test "$(defaults read dev.eymn.ascii-wallpaper theme)" = hypr-kath
+          send theme bilinmeyen-tema
+          sleep 1
+          test "$(defaults read dev.eymn.ascii-wallpaper theme)" = hypr-kath
+          send next 1 name 0 rotate 30
+          sleep 1
+          test "$(defaults read dev.eymn.ascii-wallpaper theme)" = hypr-end4
+          test "$(defaults read dev.eymn.ascii-wallpaper showThemeName)" = 0
+          test "$(defaults read dev.eymn.ascii-wallpaper rotateMinutes)" = 30
+          pkill -x AsciiWallpaper
+      - name: Kurulum betiği
+        run: |
+          AW_INSTALL_DIR="$RUNNER_TEMP/Applications" ./scripts/install.sh --no-saver --no-open
+          test -f "$RUNNER_TEMP/Applications/ASCII Wallpaper.app/Contents/Resources/web/themes.tsv"
       - name: Ekran koruyucuyu derle
         run: ./scripts/build-saver.sh
       - name: Ekran koruyucuyu yükleyip çizdir
@@ -35,7 +68,9 @@ jobs:
         if: always()
         with:
           name: Ekran-koruyucu-onizleme
-          path: build/saver-*.png
+          path: |
+            build/saver-*.png
+            build/app-*.png
       - name: Paketle
         run: |
           cd build

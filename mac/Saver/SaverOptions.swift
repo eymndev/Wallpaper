@@ -23,9 +23,14 @@ struct SaverSettings {
         get { defaults.object(forKey: "showClock") as? Bool ?? true }
         nonmutating set { defaults.set(newValue, forKey: "showClock"); defaults.synchronize() }
     }
+
+    var showThemeName: Bool {
+        get { defaults.object(forKey: "showThemeName") as? Bool ?? true }
+        nonmutating set { defaults.set(newValue, forKey: "showThemeName"); defaults.synchronize() }
+    }
 }
 
-/// Seçenekler penceresi: tema, sistem paneli ve saat.
+/// Seçenekler penceresi: tema, sistem paneli, saat ve tema adı.
 @MainActor
 final class SaverOptions: NSObject {
     let window: NSWindow
@@ -33,13 +38,14 @@ final class SaverOptions: NSObject {
     private let popup = NSPopUpButton()
     private let panelBox = NSButton(checkboxWithTitle: "Sistem panelini göster", target: nil, action: nil)
     private let clockBox = NSButton(checkboxWithTitle: "Saati göster", target: nil, action: nil)
+    private let nameBox = NSButton(checkboxWithTitle: "Tema adını köşede göster", target: nil, action: nil)
     private let themes: [(id: String, name: String)]
     private let onSave: () -> Void
 
     init(themes: [(id: String, name: String)], onSave: @escaping () -> Void) {
         self.themes = themes
         self.onSave = onSave
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 360, height: 170), styleMask: [.titled], backing: .buffered, defer: true)
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 360, height: 200), styleMask: [.titled], backing: .buffered, defer: true)
         super.init()
 
         popup.addItem(withTitle: "Rastgele (her açılışta)")
@@ -50,6 +56,7 @@ final class SaverOptions: NSObject {
         }
         panelBox.state = settings.showPanel ? .on : .off
         clockBox.state = settings.showClock ? .on : .off
+        nameBox.state = settings.showThemeName ? .on : .off
 
         let label = NSTextField(labelWithString: "Tema:")
         let done = NSButton(title: "Tamam", target: self, action: #selector(save))
@@ -59,12 +66,12 @@ final class SaverOptions: NSObject {
 
         let row = NSStackView(views: [label, popup])
         let buttons = NSStackView(views: [cancel, done])
-        let stack = NSStackView(views: [row, panelBox, clockBox, buttons])
+        let stack = NSStackView(views: [row, panelBox, clockBox, nameBox, buttons])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 12
         stack.edgeInsets = NSEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
-        stack.setCustomSpacing(20, after: clockBox)
+        stack.setCustomSpacing(20, after: nameBox)
         buttons.translatesAutoresizingMaskIntoConstraints = false
         window.contentView = stack
         NSLayoutConstraint.activate([buttons.trailingAnchor.constraint(equalTo: stack.trailingAnchor, constant: -20)])
@@ -75,6 +82,7 @@ final class SaverOptions: NSObject {
         settings.theme = index >= 2 && index - 2 < themes.count ? themes[index - 2].id : SaverSettings.random
         settings.showPanel = panelBox.state == .on
         settings.showClock = clockBox.state == .on
+        settings.showThemeName = nameBox.state == .on
         onSave()
         close()
     }

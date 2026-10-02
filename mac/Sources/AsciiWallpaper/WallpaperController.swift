@@ -2,7 +2,7 @@ import AppKit
 import WebKit
 
 /// Her ekran için bir duvar kağıdı penceresi açar, istatistikleri toplayıp sayfalara gönderir
-/// ve ayarları (tema, panel, sırayla değiştirme) saklar.
+/// ve ayarları (tema, panel, sırayla değiştirme) saklar. Ayarlar dışarıdan (riceutil) dağıtık bildirimle de değişir.
 @MainActor
 final class WallpaperController: NSObject, WKScriptMessageHandler {
     struct Theme {
@@ -37,6 +37,11 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
         set { defaults.set(newValue, forKey: "showClock"); broadcast("window.wallpaper && wallpaper.setClock(\(newValue))") }
     }
 
+    var showThemeName: Bool {
+        get { defaults.object(forKey: "showThemeName") as? Bool ?? true }
+        set { defaults.set(newValue, forKey: "showThemeName"); broadcast("window.wallpaper && wallpaper.setThemeName(\(newValue))") }
+    }
+
     /// 0 = kapalı, aksi halde dakika cinsinden tema değiştirme aralığı
     var rotateMinutes: Int {
         get { defaults.integer(forKey: "rotateMinutes") }
@@ -58,6 +63,9 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
         workspace.addObserver(self, selector: #selector(pause), name: NSWorkspace.sessionDidResignActiveNotification, object: nil)
         workspace.addObserver(self, selector: #selector(resume), name: NSWorkspace.screensDidWakeNotification, object: nil)
         workspace.addObserver(self, selector: #selector(resume), name: NSWorkspace.sessionDidBecomeActiveNotification, object: nil)
+        DistributedNotificationCenter.default().addObserver(
+            self, selector: #selector(remoteCommand(_:)), name: Self.commandNotification, object: nil,
+            suspensionBehavior: .deliverImmediately)
 
         timers = [
             Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(tick), userInfo: nil, repeats: true),
@@ -98,6 +106,30 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
         guard !themes.isEmpty else { return }
         let index = themes.firstIndex { $0.id == themeID } ?? -1
         setTheme(themes[(index + 1) % themes.count].id)
+    }
+
+    // MARK: Dışarıdan komutlar
+
+    /// riceutil gibi araçların gönderdiği bildirim. userInfo anahtarları (hepsi isteğe bağlı, değerler metin):
+    /// theme = tema kimliği, next = "1", panel / clock / name = "1" | "0", rotate = dakika.
+    static let commandNotification = Notification.Name("dev.eymn.ascii-wallpaper.command")
+
+    @objc private func remoteCommand(_ note: Notification) {
+        guard let info = note.userInfo else { return }
+        func value(_ key: String) -> String? {
+            guard let v = info[key] else { return nil }
+            return (v as? String) ?? (v as? NSNumber)?.stringValue
+        }
+        func flag(_ key: String) -> Bool? {
+            guard let v = value(key)?.lowercased() else { return nil }
+            return ["1", "true", "on", "yes", "açık"].contains(v)
+        }
+        if let id = value("theme"), themes.isEmpty || themes.contains(where: { $0.id == id }) { setTheme(id) }
+        if value("next") != nil { nextTheme() }
+        if let on = flag("panel") { showPanel = on }
+        if let on = flag("clock") { showClock = on }
+        if let on = flag("name") { showThemeName = on }
+        if let minutes = value("rotate").flatMap({ Int($0) }) { rotateMinutes = max(0, minutes) }
     }
 
     @objc func pause() { broadcast("window.wallpaper && wallpaper.setPaused(true)") }
@@ -154,6 +186,7 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
             wallpaper.setTheme(\(jsString(themeID)));
             wallpaper.setPanel(\(showPanel));
             wallpaper.setClock(\(showClock));
+            wallpaper.setThemeName(\(showThemeName));
             """, completionHandler: nil)
             tick()
         }

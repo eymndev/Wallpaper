@@ -57,7 +57,7 @@ final class AsciiSaverView: ScreenSaverView {
             id = engine.themes.randomElement()?.id ?? ""
         }
         themeID = id
-        engine.setOptions(panel: settings.showPanel, clock: settings.showClock)
+        engine.setOptions(panel: settings.showPanel, clock: settings.showClock, themeName: settings.showThemeName)
         renderer = nil // yazı ölçeği temaya göre değişebilir, ızgara yeniden kurulacak
     }
 

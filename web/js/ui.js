@@ -1,4 +1,4 @@
-// Sahnenin üstüne çizilen arayüz katmanı: büyük saat, sistem paneli ve tema bildirimi.
+// Sahnenin üstüne çizilen arayüz katmanı: büyük saat, sistem paneli, tema adı ve tema bildirimi.
 (function (G) {
   const AW = G.AW;
 
@@ -103,7 +103,7 @@
     return H;
   }
 
-  // opts: { showPanel, showClock, toast, toastUntil }
+  // opts: { showPanel, showClock, themeName, showThemeName, toast, toastUntil }
   AW.drawUI = (g, now, t, S, ui, opts = {}) => {
     ui = Object.assign({}, AW.defaultUI, ui || {});
     const cx = 4, cy = 2;
@@ -128,6 +128,17 @@
       const W = Math.min(40, g.cols - 6);
       if (g.cols >= 100) panel(g, g.cols - W - 4, cy, W, t, S, ui);
       else panel(g, cx - 2, bottom + 1, W, t, S, ui);
+    }
+
+    // Sağ alt köşede etkin temanın adı
+    if (opts.themeName && opts.showThemeName !== false && g.cols >= 30 && g.rows >= 10) {
+      const max = Math.min(40, g.cols - 8);
+      const name = opts.themeName.length > max ? opts.themeName.slice(0, max - 1) + "…" : opts.themeName;
+      const w = name.length + 6;
+      const x = g.cols - w - 2, y = g.rows - 2;
+      g.fillBg(x, y - 1, w, 3, ui.panel);
+      g.put(x + 2, y, "◆", ui.accent);
+      g.put(x + 4, y, name, ui.ink);
     }
 
     if (opts.toast && opts.toastUntil > t) {
