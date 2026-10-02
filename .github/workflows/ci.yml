@@ -27,6 +27,15 @@ jobs:
         run: ./scripts/build-app.sh
       - name: Ekran koruyucuyu derle
         run: ./scripts/build-saver.sh
+      - name: Ekran koruyucuyu yükleyip çizdir
+        run: |
+          swiftc -o build/check-saver scripts/check-saver.swift
+          build/check-saver "build/ASCII Wallpaper.saver" lake matrix hypr-kath hypr-sollee hypr-corndog hypr-alba4k
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Ekran-koruyucu-onizleme
+          path: build/saver-*.png
       - name: Paketle
         run: |
           cd build

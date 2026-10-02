@@ -23,25 +23,6 @@ struct SaverSettings {
         get { defaults.object(forKey: "showClock") as? Bool ?? true }
         nonmutating set { defaults.set(newValue, forKey: "showClock"); defaults.synchronize() }
     }
-
-    /// Tema listesi: index.html'deki sıraya göre tema dosyalarındaki `id` / `name` çiftleri.
-    static func themes(in web: URL) -> [(id: String, name: String)] {
-        guard let html = try? String(contentsOf: web.appendingPathComponent("index.html"), encoding: .utf8) else { return [] }
-        let scriptPattern = try! NSRegularExpression(pattern: #"src="(js/themes/[^"]+\.js)""#)
-        let themePattern = try! NSRegularExpression(pattern: #"id:\s*"([^"]+)",\s*name:\s*"([^"]+)""#)
-        var result: [(String, String)] = []
-        for match in scriptPattern.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
-            guard let range = Range(match.range(at: 1), in: html),
-                  let js = try? String(contentsOf: web.appendingPathComponent(String(html[range])), encoding: .utf8)
-            else { continue }
-            for m in themePattern.matches(in: js, range: NSRange(js.startIndex..., in: js)) {
-                if let id = Range(m.range(at: 1), in: js), let name = Range(m.range(at: 2), in: js) {
-                    result.append((String(js[id]), String(js[name])))
-                }
-            }
-        }
-        return result
-    }
 }
 
 /// Seçenekler penceresi: tema, sistem paneli ve saat.
@@ -53,9 +34,11 @@ final class SaverOptions: NSObject {
     private let panelBox = NSButton(checkboxWithTitle: "Sistem panelini göster", target: nil, action: nil)
     private let clockBox = NSButton(checkboxWithTitle: "Saati göster", target: nil, action: nil)
     private let themes: [(id: String, name: String)]
+    private let onSave: () -> Void
 
-    init(themes: [(id: String, name: String)]) {
+    init(themes: [(id: String, name: String)], onSave: @escaping () -> Void) {
         self.themes = themes
+        self.onSave = onSave
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 360, height: 170), styleMask: [.titled], backing: .buffered, defer: true)
         super.init()
 
@@ -92,6 +75,7 @@ final class SaverOptions: NSObject {
         settings.theme = index >= 2 && index - 2 < themes.count ? themes[index - 2].id : SaverSettings.random
         settings.showPanel = panelBox.state == .on
         settings.showClock = clockBox.state == .on
+        onSave()
         close()
     }
 

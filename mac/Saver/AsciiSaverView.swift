@@ -1,44 +1,43 @@
 import AppKit
 import ScreenSaver
-import WebKit
 
-/// Ekran koruyucu: duvar kağıdıyla aynı sayfayı (web/) tam ekran gösterir ve
-/// CPU, RAM, pil ve ağ verisini saniyede bir sayfaya gönderir.
+/// Ekran koruyucu: duvar kağıdıyla aynı temaları çizer ve CPU, RAM, pil ve ağ verisini gösterir.
+/// Temalar JavaScriptCore'da çalışır (AsciiEngine), karakterler Core Text ile çizilir (AsciiRenderer).
+/// Ekran koruyucu süreci WKWebView'ın içerik sürecini başlatamadığı için web görünümü kullanılmaz.
 @objc(AsciiSaverView)
-final class AsciiSaverView: ScreenSaverView, WKScriptMessageHandler {
-    private var webView: WKWebView?
+final class AsciiSaverView: ScreenSaverView {
+    private let engine: AsciiEngine?
     private let stats = StatsMonitor()
-    private var timer: Timer?
+    private var renderer: AsciiRenderer?
+    private var info: AsciiEngine.Info?
+    private var background = CGColor(gray: 0, alpha: 1)
+    private var grid = (cols: 0, rows: 0)
+    private var cells: [UInt16] = []
+    private var themeID = ""
+    private var lastFrame: TimeInterval = 0
+    private var lastStats: TimeInterval = 0
     private var options: SaverOptions?
 
-    private var bundle: Bundle { Bundle(for: AsciiSaverView.self) }
-    private var webDirectory: URL? { bundle.resourceURL?.appendingPathComponent("web") }
+    private static var webDirectory: URL? {
+        Bundle(for: AsciiSaverView.self).resourceURL?.appendingPathComponent("web")
+    }
 
     override init?(frame: NSRect, isPreview: Bool) {
+        engine = Self.webDirectory.flatMap(AsciiEngine.init(webDirectory:))
         super.init(frame: frame, isPreview: isPreview)
         setUp()
     }
 
     required init?(coder: NSCoder) {
+        engine = Self.webDirectory.flatMap(AsciiEngine.init(webDirectory:))
         super.init(coder: coder)
         setUp()
     }
 
     private func setUp() {
-        animationTimeInterval = 1 // çizim sayfanın kendi döngüsünde, burada sadece istatistik
-        wantsLayer = true
-        layer?.backgroundColor = NSColor.black.cgColor
-        guard let web = webDirectory else { return }
-
-        let config = WKWebViewConfiguration()
-        config.userContentController.add(SaverMessageProxy(self), name: "aw")
-        config.suppressesIncrementalRendering = true
-        let view = WKWebView(frame: bounds, configuration: config)
-        view.setValue(false, forKey: "drawsBackground")
-        view.autoresizingMask = [.width, .height]
-        addSubview(view)
-        webView = view
-        view.loadFileURL(web.appendingPathComponent("index.html"), allowingReadAccessTo: web)
+        animationTimeInterval = 1.0 / 20
+        if engine == nil { NSLog("AsciiSaver: temalar yüklenemedi") }
+        chooseTheme()
 
         // macOS 14+ ekran koruyucuyu kapatırken stopAnimation çağırmayabiliyor
         DistributedNotificationCenter.default().addObserver(
@@ -49,67 +48,86 @@ final class AsciiSaverView: ScreenSaverView, WKScriptMessageHandler {
         DistributedNotificationCenter.default().removeObserver(self)
     }
 
+    /// Ayarlardaki tema ya da rastgele bir tema; AW_SAVER_THEME ortam değişkeni (test için) önceliklidir.
+    private func chooseTheme() {
+        guard let engine else { return }
+        let settings = SaverSettings()
+        var id = getenv("AW_SAVER_THEME").map { String(cString: $0) } ?? settings.theme
+        if id == SaverSettings.random || !engine.themes.contains(where: { $0.id == id }) {
+            id = engine.themes.randomElement()?.id ?? ""
+        }
+        themeID = id
+        engine.setOptions(panel: settings.showPanel, clock: settings.showClock)
+        renderer = nil // yazı ölçeği temaya göre değişebilir, ızgara yeniden kurulacak
+    }
+
+    private func layoutGrid() {
+        guard let engine, bounds.width > 0, bounds.height > 0 else { return }
+        let info = engine.setTheme(themeID)
+        let renderer = AsciiRenderer(width: bounds.width, fontScale: info.fontScale)
+        let size = renderer.gridSize(for: bounds.size)
+        engine.resize(cols: size.cols, rows: size.rows, aspect: size.aspect)
+        grid = (size.cols, size.rows)
+        background = CGColor(srgbRed: info.bg.r / 255, green: info.bg.g / 255, blue: info.bg.b / 255, alpha: 1)
+        self.info = info
+        self.renderer = renderer
+        sendStats()
+        cells = engine.frame(dt: 0.05)
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        renderer = nil
+    }
+
     // MARK: Yaşam döngüsü
 
     override func startAnimation() {
         super.startAnimation()
-        run("window.wallpaper && wallpaper.setPaused(false)")
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(tick), userInfo: nil, repeats: true)
+        if SaverSettings().theme == SaverSettings.random { chooseTheme() }
+        lastFrame = 0
     }
 
     override func stopAnimation() {
         super.stopAnimation()
-        pauseAll()
     }
 
     @objc private func willStop() {
-        pauseAll()
+        if isAnimating { stopAnimation() }
     }
 
-    private func pauseAll() {
-        timer?.invalidate()
-        timer = nil
-        run("window.wallpaper && wallpaper.setPaused(true)")
+    override func animateOneFrame() {
+        guard let engine else { return }
+        if renderer == nil { layoutGrid() }
+        let now = ProcessInfo.processInfo.systemUptime
+        let dt = lastFrame > 0 ? min(0.25, now - lastFrame) : 0.05
+        lastFrame = now
+        if now - lastStats >= 1 { sendStats() }
+        cells = engine.frame(dt: dt)
+        needsDisplay = true
     }
 
-    override func animateOneFrame() {}
-
-    // MARK: Sayfa
-
-    private func run(_ script: String) {
-        webView?.evaluateJavaScript(script, completionHandler: nil)
-    }
-
-    @objc private func tick() {
+    private func sendStats() {
+        lastStats = ProcessInfo.processInfo.systemUptime
         let s = stats.sample()
         var payload: [String: Any] = [
             "cpu": s.cpu, "ram": s.ramUsedGB, "ramTotal": s.ramTotalGB,
             "charging": s.charging, "onBattery": s.onBattery,
-            "down": s.downMBps, "up": s.upMBps, "track": "", "weather": "",
+            "down": s.downMBps, "up": s.upMBps,
         ]
         payload["battery"] = s.battery ?? NSNull()
-        if let data = try? JSONSerialization.data(withJSONObject: payload),
-           let json = String(data: data, encoding: .utf8) {
-            run("window.wallpaper && wallpaper.update(\(json))")
-        }
+        engine?.update(payload)
     }
 
-    func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard let body = message.body as? [String: Any], body["type"] as? String == "ready" else { return }
-        let settings = SaverSettings()
-        var theme = settings.theme
-        if theme == SaverSettings.random, let list = body["themes"] as? [[String: Any]] {
-            let ids = list.compactMap { $0["id"] as? String }
-            theme = ids.randomElement() ?? ""
+    override func draw(_ rect: NSRect) {
+        guard let ctx = NSGraphicsContext.current?.cgContext else { return }
+        if renderer == nil { layoutGrid() }
+        guard let renderer else {
+            ctx.setFillColor(CGColor(gray: 0, alpha: 1))
+            ctx.fill(bounds)
+            return
         }
-        var script = "wallpaper.setPanel(\(settings.showPanel)); wallpaper.setClock(\(settings.showClock));"
-        if !theme.isEmpty, let data = try? JSONSerialization.data(withJSONObject: [theme]),
-           let array = String(data: data, encoding: .utf8) {
-            script += "wallpaper.setTheme(\(array.dropFirst().dropLast()));"
-        }
-        run(script)
-        tick()
+        renderer.draw(cells: cells, cols: grid.cols, rows: grid.rows, background: background, in: ctx, height: bounds.height)
     }
 
     // MARK: Ayarlar penceresi
@@ -117,23 +135,10 @@ final class AsciiSaverView: ScreenSaverView, WKScriptMessageHandler {
     override var hasConfigureSheet: Bool { true }
 
     override var configureSheet: NSWindow? {
-        let themes = webDirectory.map(SaverSettings.themes(in:)) ?? []
-        let sheet = SaverOptions(themes: themes)
+        let sheet = SaverOptions(themes: engine?.themes.map { (id: $0.id, name: $0.name) } ?? []) { [weak self] in
+            self?.chooseTheme()
+        }
         options = sheet
         return sheet.window
-    }
-}
-
-/// WKUserContentController işleyicisini güçlü tuttuğu için arada zayıf referanslı köprü.
-@MainActor
-private final class SaverMessageProxy: NSObject, WKScriptMessageHandler {
-    weak var target: WKScriptMessageHandler?
-
-    init(_ target: WKScriptMessageHandler) {
-        self.target = target
-    }
-
-    func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
-        target?.userContentController(controller, didReceive: message)
     }
 }
