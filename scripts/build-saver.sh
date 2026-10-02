@@ -15,7 +15,7 @@ for ARCH in arm64 x86_64; do
   swiftc -O -module-name AsciiSaver -emit-library \
     -target "$ARCH-apple-macos13.0" \
     -Xlinker -install_name -Xlinker "@rpath/AsciiSaver" \
-    -framework AppKit -framework ScreenSaver -framework WebKit -framework IOKit \
+    -framework AppKit -framework ScreenSaver -framework JavaScriptCore -framework CoreText -framework IOKit \
     -o "$TMP/AsciiSaver-$ARCH" "${SOURCES[@]}"
 done
 lipo -create "$TMP/AsciiSaver-arm64" "$TMP/AsciiSaver-x86_64" -output "$SAVER/Contents/MacOS/AsciiSaver"
