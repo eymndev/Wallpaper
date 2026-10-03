@@ -149,6 +149,8 @@ Bu `web/js/themes/hypr/benim-tema.data.js` dosyasını üretir. Dosyayı `index.
 
 Tema ekledikten sonra `node scripts/themes-manifest.mjs` ile `web/themes.tsv` listesini güncelle (riceutil temaları buradan okur).
 
+Ardından `node scripts/previews.cjs benim-tema` ile `web/previews/benim-tema.jpg` önizlemesini üret (Playwright gerekir: `npm i -g playwright`). riceutil GUI'si tema kartlarında bu görselleri gösterir.
+
 `npm test` her temayı farklı ekran boyutlarında tarayıcı olmadan çalıştırıp hatasız çizdiğini kontrol eder.
 
 ## Yapı
