@@ -10,6 +10,25 @@ Mac masaüstü için ASCII karakterlerle çizilen, hareketli ve canlı sistem is
 
 Görünüşün tamamı `web/` klasöründeki HTML/CSS/JS ile yapılır. `mac/` klasöründeki küçük Swift uygulaması bu sayfayı her ekranda masaüstü ikonlarının arkasına yerleştirir ve CPU, RAM, pil, ağ, çalan şarkı ve hava durumu bilgisini saniyede bir sayfaya gönderir.
 
+## Galeri
+
+Her tema saat, sistem paneli (örnek veri) ve köşedeki tema adıyla birlikte, 1440x900 ekranda çizildiği gibi. Temayı kimliğiyle seçebilirsin, örneğin `riceutil wallpaper theme misa-train`.
+
+<table>
+  <tr><td align="center" width="50%"><img src="docs/gifs/lake.gif" alt="Gece Gölü" width="360"><br><b>Gece Gölü</b> · <code>lake</code></td><td align="center" width="50%"><img src="docs/gifs/matrix.gif" alt="Matrix" width="360"><br><b>Matrix</b> · <code>matrix</code></td></tr>
+  <tr><td align="center" width="50%"><img src="docs/gifs/fire.gif" alt="Şömine" width="360"><br><b>Şömine</b> · <code>fire</code></td><td align="center" width="50%"><img src="docs/gifs/city.gif" alt="Yağmurlu Şehir" width="360"><br><b>Yağmurlu Şehir</b> · <code>city</code></td></tr>
+  <tr><td align="center" width="50%"><img src="docs/gifs/starfield.gif" alt="Hiper Uzay" width="360"><br><b>Hiper Uzay</b> · <code>starfield</code></td><td align="center" width="50%"><img src="docs/gifs/plasma.gif" alt="Plazma" width="360"><br><b>Plazma</b> · <code>plasma</code></td></tr>
+  <tr><td align="center" width="50%"><img src="docs/gifs/desert.gif" alt="Çöl Batımı" width="360"><br><b>Çöl Batımı</b> · <code>desert</code></td><td align="center" width="50%"><img src="docs/gifs/snow.gif" alt="Karlı Orman" width="360"><br><b>Karlı Orman</b> · <code>snow</code></td></tr>
+  <tr><td align="center" width="50%"><img src="docs/gifs/aurora.gif" alt="Kuzey Işıkları" width="360"><br><b>Kuzey Işıkları</b> · <code>aurora</code></td><td align="center" width="50%"><img src="docs/gifs/life.gif" alt="Hayat Oyunu" width="360"><br><b>Hayat Oyunu</b> · <code>life</code></td></tr>
+  <tr><td align="center" width="50%"><img src="docs/gifs/donut.gif" alt="Dönen Simit" width="360"><br><b>Dönen Simit</b> · <code>donut</code></td><td align="center" width="50%"><img src="docs/gifs/synthwave.gif" alt="Synthwave" width="360"><br><b>Synthwave</b> · <code>synthwave</code></td></tr>
+  <tr><td align="center" width="50%"><img src="docs/gifs/aquarium.gif" alt="Akvaryum" width="360"><br><b>Akvaryum</b> · <code>aquarium</code></td><td align="center" width="50%"><img src="docs/gifs/hypr-honkadaloonga.gif" alt="Hypr · Honkadaloonga" width="360"><br><b>Hypr · Honkadaloonga</b> · <code>hypr-honkadaloonga</code></td></tr>
+  <tr><td align="center" width="50%"><img src="docs/gifs/hypr-kath.gif" alt="Hypr · Kath" width="360"><br><b>Hypr · Kath</b> · <code>hypr-kath</code></td><td align="center" width="50%"><img src="docs/gifs/hypr-end4.gif" alt="Hypr · end_4" width="360"><br><b>Hypr · end_4</b> · <code>hypr-end4</code></td></tr>
+  <tr><td align="center" width="50%"><img src="docs/gifs/hypr-alba4k.gif" alt="Hypr · alba4k" width="360"><br><b>Hypr · alba4k</b> · <code>hypr-alba4k</code></td><td align="center" width="50%"><img src="docs/gifs/hypr-corndog.gif" alt="Hypr · corndog" width="360"><br><b>Hypr · corndog</b> · <code>hypr-corndog</code></td></tr>
+  <tr><td align="center" width="50%"><img src="docs/gifs/hypr-meptl.gif" alt="Hypr · Meptl" width="360"><br><b>Hypr · Meptl</b> · <code>hypr-meptl</code></td><td align="center" width="50%"><img src="docs/gifs/hypr-sollee.gif" alt="Hypr · Sollee" width="360"><br><b>Hypr · Sollee</b> · <code>hypr-sollee</code></td></tr>
+  <tr><td align="center" width="50%"><img src="docs/gifs/hypr-srev.gif" alt="Hypr · srev" width="360"><br><b>Hypr · srev</b> · <code>hypr-srev</code></td><td align="center" width="50%"><img src="docs/gifs/hypr-vdawg.gif" alt="Hypr · VDawg" width="360"><br><b>Hypr · VDawg</b> · <code>hypr-vdawg</code></td></tr>
+  <tr><td align="center" width="50%"><img src="docs/gifs/misa-train.gif" alt="Misa Train" width="360"><br><b>Misa Train</b> · <code>misa-train</code></td></tr>
+</table>
+
 ## Temalar
 
 | Kimlik | Ad | Sistem verisine tepkisi |
@@ -30,7 +49,7 @@ Görünüşün tamamı `web/` klasöründeki HTML/CSS/JS ile yapılır. `mac/` k
 
 ### Hyprland yarışma kazananları
 
-[Hyprland duvar kağıdı yarışmasının](https://hypr.land/news/contestWinners) dokuz kazanan görseli ASCII'ye çevrildi. Her biri görselin kendisinden üretilir ve üstüne hafif bir animasyon eklenir; CPU yükseldikçe animasyon hızlanır. Bu temalar ayrıntı görünsün diye daha küçük yazıyla (daha sık ızgarayla) çizilir.
+[Hyprland duvar kağıdı yarışmasının](https://hypr.land/news/contestWinners) dokuz kazanan görseli ASCII'ye çevrildi. Her biri görselin kendisinden üretilir ve üstüne hafif bir animasyon eklenir; CPU yükseldikçe animasyon hızlanır. Görsel ayrıntı görünsün diye daha sık ızgarayla (küçük karakterlerle) çizilir; saat ve panel diğer temalardaki boyutta kalır.
 
 | Kimlik | Sanatçı | Animasyon |
 | --- | --- | --- |
@@ -159,7 +178,7 @@ Bu `web/js/themes/hypr/benim-tema.data.js` dosyasını üretir (`--dir deathnote
 
 Tema ekledikten sonra `node scripts/themes-manifest.mjs` ile `web/themes.tsv` listesini güncelle (riceutil temaları buradan okur).
 
-Ardından `node scripts/previews.cjs benim-tema` ile `web/previews/benim-tema.jpg` önizlemesini üret (Playwright gerekir: `npm i -g playwright`). riceutil GUI'si tema kartlarında bu görselleri gösterir.
+Ardından `node scripts/previews.cjs benim-tema` ile `web/previews/benim-tema.jpg` önizlemesini üret (Playwright gerekir: `npm i -g playwright`). riceutil GUI'si tema kartlarında bu görselleri gösterir. README galerisindeki GIF'i `node scripts/gifs.cjs benim-tema` üretir (`docs/gifs/benim-tema.gif`; Playwright ve Pillow gerekir), galeri tablosuna da bir hücre ekle.
 
 `npm test` her temayı farklı ekran boyutlarında tarayıcı olmadan çalıştırıp hatasız çizdiğini kontrol eder.
 
@@ -171,4 +190,5 @@ mac/            Swift uygulaması (masaüstü penceresi, istatistikler, menü)
 mac/Saver/      Ekran koruyucu (.saver)
 scripts/        Derleme, kurulum, tema listesi ve görselden tema üretme betikleri
 tests/          Tema testleri
+docs/gifs/      README galerisindeki tema GIF'leri
 ```

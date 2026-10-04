@@ -17,6 +17,7 @@ Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işa
 - `mac/Sources/AsciiWallpaper/`: Swift uygulama (SwiftPM). Her ekranda masaüstü seviyesinde bir `WKWebView` penceresi açar, istatistikleri saniyede bir `wallpaper.update(...)` ile sayfaya gönderir, menü çubuğu menüsü burada.
 - `mac/Saver/`: Ekran koruyucu (`.saver`). Temaları JavaScriptCore + `web/js/headless.js` ile çalıştırır, Core Text ile çizer.
 - `scripts/`: Derleme, kurulum ve üretim betikleri (aşağıda).
+- `docs/gifs/`: README galerisindeki tema GIF'leri.
 - `tests/`: Node testleri (`node --test`).
 
 ## Komutlar
@@ -27,6 +28,7 @@ Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işa
 - `./scripts/install.sh [--no-saver] [--no-open]`: Derler, `~/Applications`'a (ya da `AW_INSTALL_DIR`) kurar, ekran koruyucuyu kurar, başlatır. `riceutil wallpaper install|update` bunu çağırır.
 - `node scripts/themes-manifest.mjs`: `web/themes.tsv`'yi yeniden üretir. Tema ekleyince/silince çalıştır; bir test bunu denetler.
 - `node scripts/previews.cjs [kimlik ...]`: `web/previews/*.jpg` üretir (Playwright gerekir). Yeni temanın önizlemesi yoksa test başarısız olur.
+- `node scripts/gifs.cjs [kimlik ...]`: README galerisindeki `docs/gifs/*.gif` dosyalarını üretir (Playwright + Pillow; sayfanın saatini Playwright ile ilerletir, 3 sn, 8 kare/sn, 720x450).
 - `python3 scripts/encode-image.py gorsel.png kimlik [--dir hypr] [--size 640x360]`: Görselden tema verisi üretir (Pillow gerekir); `--dir` `web/js/themes` altındaki çıktı dizini, `--size` hedef boyut (varsayılan 320x180).
 
 ## CI
@@ -42,7 +44,7 @@ Swift kodu Linux/bulut ortamında derlenemez; Swift değişiklikleri yalnızca m
 - **Ayarlar** `dev.eymn.ascii-wallpaper` UserDefaults alanındadır: `theme`, `showPanel`, `showClock`, `showThemeName`, `rotateMinutes`, `city`, `latitude`, `longitude`.
 - **Tema kimliğini değiştirirken** eskisini `web/js/util.js` içindeki `AW.aliases`'a ekle: kayıtlı ayarlar ve eski komutlar yeni temayı açar, uygulama kayıtlı ayarı yenisine çevirir.
 - **Görsel temalar** varsayılan olarak sık ızgarayla (`fontScale` 0.4) çizilir; zemin hücrenin kendi rengidir, karakter dokuyu verir. Saat, panel, tema adı ve bildirim bu temalarda normal boyutlu ayrı bir arayüz ızgarasına çizilir (sayfada `main.js` `ui`, ekran koruyucuda `AWH.resizeUI` ve ikinci `AsciiRenderer`); böylece arayüz her temada aynı boyuttadır. Masaüstü sayfası sahnede yalnız değişen hücreleri yeniden çizer (`main.js` `render`), arayüz katmanını her karede üstüne çizer; yeni bir efekt her karede tüm hücreleri değiştirirse bu kazanç kaybolur.
-- **Yeni tema eklerken:** `web/js/themes/` + `web/index.html` script listesi (`main.js`'ten önce), sonra `node scripts/themes-manifest.mjs` ve `node scripts/previews.cjs <kimlik>`, ardından `npm test`.
+- **Yeni tema eklerken:** `web/js/themes/` + `web/index.html` script listesi (`main.js`'ten önce), sonra `node scripts/themes-manifest.mjs`, `node scripts/previews.cjs <kimlik>` ve `node scripts/gifs.cjs <kimlik>` (README galerisine hücre ekle), ardından `npm test`. Görünüşü değiştiren bir değişiklikten sonra önizlemeleri ve GIF'leri yeniden üret.
 - Hava durumu anahtarsız Open-Meteo kullanır; depoya API anahtarı veya sır ekleme.
 - **Kullanıcıya verilen terminal komutlarında yer tutucu yol kullanma** (`/klasorunun/yolu` gibi); kullanıcı komutları olduğu gibi yapıştırır. Gerçek yollar ver.
 - Varsayılan dal `claude/project-thread-ljkqkv`'dir (`main` değil); PR'lar bu dala açılır.
@@ -289,3 +291,27 @@ Kullanıcı geri bildirimi: sık ızgaradan sonra görsel temalarda saat ve CPU 
 
 #### Bilinen sorunlar ve sonraki adımlar
 - Yok.
+
+### 2026-10-04 — README GIF galerisi
+
+#### Amaç
+Kullanıcı isteği: saat/panel ölçeklemesi düzeldikten sonra README'yi güncelle, her temanın GIF'ini README'ye koy, varsayılan dala birleştir.
+
+#### Yapılanlar
+- `scripts/gifs.cjs`: Her temayı başsız Chromium'da 1440x900 çizer, Playwright saatiyle 24 kare yakalar, Pillow ile 720x450, 128 renkli GIF yapar.
+- `docs/gifs/*.gif`: 23 tema (toplam ~11 MB; ateş ve plazma gibi gürültülü temalar 1-1.6 MB).
+- `README.md`: Başa tema adı, kimliği ve GIF'iyle "Galeri"; Hypr açıklaması ve yeni tema adımları güncellendi.
+- `web/js/main.js`: Hücre dikdörtgenleri ekranın gerçek piksellerine yuvarlanır. Kesirli piksel oranında (sayfa yakınlaştırması, küçültülmüş önizleme) yarı kaplanan kenar pikselleri eski çizimi silmiyordu; kaybolan tema bildiriminin soluk izi kalıyordu. Tüm önizlemeler yeniden üretildi.
+
+#### Hedef durumu
+- [x] Her temanın GIF'i README galerisinde.
+
+#### Teknik kararlar
+- GIF'ler tam boyutta çizilip küçültülür: doğrudan küçük ölçekte çizmek yazıları okunmaz yapıyordu. 600x375 boyut yalnız %10-30 küçültüyordu, okunurluk için 720x450 seçildi.
+- Animasyon gerçek zamanda değil Playwright'ın sahte saatiyle ilerletilir; kareler eşit aralıklı ve tekrarlanabilir (saat 21:30 sabit).
+
+#### Testler
+- `npm test`: 53 test geçti.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Görünüş değişince GIF'ler kendiliğinden güncellenmez; `node scripts/gifs.cjs` yeniden çalıştırılmalı.
