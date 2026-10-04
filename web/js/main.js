@@ -21,7 +21,7 @@
 
   const state = {
     theme: null, themeState: null, grid: new AW.Grid(10, 10),
-    cw: 8, ch: 16, fontScale: 1, showPanel: params.get("panel") !== "0" && store.get("panel") !== "0",
+    cw: 8, ch: 16, fontScale: 1, font: "", showPanel: params.get("panel") !== "0" && store.get("panel") !== "0",
     showClock: params.get("clock") !== "0", showThemeName: params.get("name") !== "0", paused: false,
     toast: "", toastUntil: 0, t: 0, lastFrame: 0, lastDraw: 0,
   };
@@ -76,11 +76,21 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     state.fontScale = (state.theme && state.theme.fontScale) || 1;
     const fs = AW.clamp((innerWidth / 110) * state.fontScale, Math.max(6, 10 * state.fontScale), 16);
-    ctx.font = `${fs}px ${FONT_STACK}`;
     ctx.textBaseline = "top";
+    ctx.font = state.font = `${fs}px ${FONT_STACK}`;
     state.cw = ctx.measureText("M").width;
     state.ch = Math.round(fs * 1.18);
     state.grid.resize(Math.ceil(innerWidth / state.cw), Math.ceil(innerHeight / state.ch), state.cw / state.ch);
+    // Sık ızgaralı temalarda saat, panel ve tema adı normal boyutlu ayrı bir katmana çizilir
+    if (state.fontScale !== 1) {
+      const ufs = AW.clamp(innerWidth / 110, 10, 16);
+      ctx.font = ui.font = `${ufs}px ${FONT_STACK}`;
+      ui.cw = ctx.measureText("M").width;
+      ui.ch = Math.round(ufs * 1.18);
+      ui.grid = new AW.Grid(Math.ceil(innerWidth / ui.cw), Math.ceil(innerHeight / ui.ch), ui.cw / ui.ch);
+      ui.on = new Uint8Array(ui.grid.cols * ui.grid.rows);
+      ctx.font = state.font;
+    } else ui.grid = null;
     drawn.full = true; // canvas boyutu değişince içeriği silinir
     if (state.theme) initTheme();
   }
@@ -88,6 +98,15 @@
   // Bir önceki karede ekranda olan hücreler. Yalnız değişen hücreler yeniden çizilir: görsel temalarda
   // hücrelerin çoğu kareden kareye aynı kalır, sık ızgarada her kareyi baştan çizmek gereksiz pahalı.
   const drawn = { ch: [], fg: [], bg: [], base: null, full: true };
+  // Arayüz katmanı (yalnız sık ızgaralı temalarda): on = hücre bir önceki karede doluydu
+  const ui = { grid: null, on: null, cw: 8, ch: 16, font: "" };
+
+  // Yarı saydam zemin (panel) eski çizimin üstüne binmesin diye önce temanın zemini
+  function cell(x0, y0, w, h, c, fg, bg, base) {
+    if (!bg || bg.charCodeAt(3) === 97) { ctx.fillStyle = base; ctx.fillRect(x0, y0, w, h); }
+    if (bg) { ctx.fillStyle = bg; ctx.fillRect(x0, y0, w, h); }
+    if (fg) { ctx.fillStyle = fg; ctx.fillText(c, x0, y0 + 1); }
+  }
 
   function render() {
     const g = state.grid, { cw, ch } = state, n = g.cols * g.rows;
@@ -101,7 +120,21 @@
       drawn.base = base;
       drawn.full = false;
     }
-    let last = null;
+    const u = ui.grid;
+    if (u) {
+      // Kaybolan arayüz hücrelerinin altındaki sahne hücreleri yeniden çizilsin
+      for (let k = 0; k < u.ch.length; k++) {
+        const on = u.bg[k] || u.ch[k] !== " " ? 1 : 0;
+        if (ui.on[k] && !on) {
+          const ux = k % u.cols, uy = (k / u.cols) | 0;
+          const xa = Math.floor((ux * ui.cw) / cw), xb = Math.min(g.cols - 1, Math.floor(((ux + 1) * ui.cw - 0.01) / cw));
+          const ya = Math.floor((uy * ui.ch) / ch), yb = Math.min(g.rows - 1, Math.floor(((uy + 1) * ui.ch - 0.01) / ch));
+          for (let y = ya; y <= yb; y++) for (let x = xa; x <= xb; x++) drawn.ch[y * g.cols + x] = undefined;
+        }
+        ui.on[k] = on;
+      }
+    }
+    ctx.font = state.font;
     for (let y = 0; y < g.rows; y++) {
       const top = y * ch;
       for (let x = 0; x < g.cols; x++) {
@@ -110,13 +143,18 @@
         if (c === drawn.ch[k] && fg === drawn.fg[k] && bg === drawn.bg[k]) continue;
         drawn.ch[k] = c; drawn.fg[k] = fg; drawn.bg[k] = bg;
         // Hücreler tam piksellere oturur: komşular arasında boşluk ya da üst üste binme kalmaz
-        const x0 = Math.floor(x * cw), x1 = Math.floor((x + 1) * cw);
-        ctx.fillStyle = last = bg || base;
-        ctx.fillRect(x0, top, x1 - x0, ch);
-        if (!fg) continue;
-        if (fg !== last) ctx.fillStyle = last = fg;
-        ctx.fillText(c, x * cw, top + 1);
+        const x0 = Math.floor(x * cw);
+        cell(x0, top, Math.floor((x + 1) * cw) - x0, ch, c, fg, bg, base);
       }
+    }
+    if (!u) return;
+    // Arayüz katmanı her karede baştan çizilir (birkaç yüz hücre); altındaki sahne değişse de üstte kalır
+    ctx.font = ui.font;
+    for (let k = 0; k < u.ch.length; k++) {
+      if (!ui.on[k]) continue;
+      const x = k % u.cols, y = (k / u.cols) | 0, c = u.ch[k];
+      const x0 = Math.floor(x * ui.cw), y0 = y * ui.ch;
+      cell(x0, y0, Math.floor((x + 1) * ui.cw) - x0, ui.ch, c, c === " " ? null : u.fg[k] || null, u.bg[k] || null, base);
     }
   }
 
@@ -124,7 +162,8 @@
     const g = state.grid;
     g.clear();
     state.theme.frame(g, state.t, dt, S, state.themeState);
-    AW.drawUI(g, new Date(), state.t, S, state.theme.ui, {
+    if (ui.grid) ui.grid.clear();
+    AW.drawUI(ui.grid || g, new Date(), state.t, S, state.theme.ui, {
       showPanel: state.showPanel, showClock: state.showClock, reduceMotion,
       themeName: state.theme.name, showThemeName: state.showThemeName,
       toast: state.toast, toastUntil: state.toastUntil,

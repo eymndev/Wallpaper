@@ -66,6 +66,11 @@ final class AsciiEngine {
         api.invokeMethod("resize", withArguments: [cols, rows, aspect])
     }
 
+    /// Sık ızgaralı temalarda saat ve panel için ayrı ızgara; cols 0 ise arayüz sahneye çizilir
+    func resizeUI(cols: Int, rows: Int, aspect: Double) {
+        api.invokeMethod("resizeUI", withArguments: [cols, rows, aspect])
+    }
+
     func setOptions(panel: Bool, clock: Bool, themeName: Bool) {
         api.invokeMethod("setOptions", withArguments: [panel, clock, themeName])
     }
@@ -74,7 +79,7 @@ final class AsciiEngine {
         api.invokeMethod("update", withArguments: [stats])
     }
 
-    /// Bir kare çizer; hücre başına 5 birim (bkz. headless.js)
+    /// Bir kare çizer; hücre başına 5 birim, varsa arayüz ızgarasının hücreleri sonda (bkz. headless.js)
     func frame(dt: Double) -> [UInt16] {
         guard let s = api.invokeMethod("frame", withArguments: [dt])?.toString() else { return [] }
         return Array(s.utf16)
