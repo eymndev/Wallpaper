@@ -21,7 +21,7 @@
 
   const state = {
     theme: null, themeState: null, grid: new AW.Grid(10, 10),
-    cw: 8, ch: 16, fontScale: 1, font: "", showPanel: params.get("panel") !== "0" && store.get("panel") !== "0",
+    cw: 8, ch: 16, fontScale: 1, font: "", dpr: 1, showPanel: params.get("panel") !== "0" && store.get("panel") !== "0",
     showClock: params.get("clock") !== "0", showThemeName: params.get("name") !== "0", paused: false,
     toast: "", toastUntil: 0, t: 0, lastFrame: 0, lastDraw: 0,
   };
@@ -74,6 +74,7 @@
     canvas.width = Math.round(innerWidth * dpr);
     canvas.height = Math.round(innerHeight * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    state.dpr = dpr;
     state.fontScale = (state.theme && state.theme.fontScale) || 1;
     const fs = AW.clamp((innerWidth / 110) * state.fontScale, Math.max(6, 10 * state.fontScale), 16);
     ctx.textBaseline = "top";
@@ -108,6 +109,10 @@
     if (fg) { ctx.fillStyle = fg; ctx.fillText(c, x0, y0 + 1); }
   }
 
+  // Hücreler ekranın gerçek piksellerine oturur: komşular arasında boşluk ya da yarı kaplanan (eski çizimi
+  // tam silmeyen) kenar pikseli kalmaz. Yakınlaştırılmış sayfada (kesirli piksel oranı) da geçerli.
+  const snap = (v) => Math.floor(v * state.dpr) / state.dpr;
+
   function render() {
     const g = state.grid, { cw, ch } = state, n = g.cols * g.rows;
     const base = state.theme.bg || "#000";
@@ -127,8 +132,9 @@
         const on = u.bg[k] || u.ch[k] !== " " ? 1 : 0;
         if (ui.on[k] && !on) {
           const ux = k % u.cols, uy = (k / u.cols) | 0;
-          const xa = Math.floor((ux * ui.cw) / cw), xb = Math.min(g.cols - 1, Math.floor(((ux + 1) * ui.cw - 0.01) / cw));
-          const ya = Math.floor((uy * ui.ch) / ch), yb = Math.min(g.rows - 1, Math.floor(((uy + 1) * ui.ch - 0.01) / ch));
+          // Piksele yuvarlama yüzünden kenarda kalan bir sıra da dahil
+          const xa = Math.max(0, Math.floor((ux * ui.cw) / cw) - 1), xb = Math.min(g.cols - 1, Math.floor(((ux + 1) * ui.cw) / cw) + 1);
+          const ya = Math.max(0, Math.floor((uy * ui.ch) / ch) - 1), yb = Math.min(g.rows - 1, Math.floor(((uy + 1) * ui.ch) / ch) + 1);
           for (let y = ya; y <= yb; y++) for (let x = xa; x <= xb; x++) drawn.ch[y * g.cols + x] = undefined;
         }
         ui.on[k] = on;
@@ -136,15 +142,14 @@
     }
     ctx.font = state.font;
     for (let y = 0; y < g.rows; y++) {
-      const top = y * ch;
+      const top = snap(y * ch), h = snap((y + 1) * ch) - top;
       for (let x = 0; x < g.cols; x++) {
         const k = y * g.cols + x;
         const c = g.ch[k], fg = c === " " ? null : g.fg[k] || null, bg = g.bg[k] || null;
         if (c === drawn.ch[k] && fg === drawn.fg[k] && bg === drawn.bg[k]) continue;
         drawn.ch[k] = c; drawn.fg[k] = fg; drawn.bg[k] = bg;
-        // Hücreler tam piksellere oturur: komşular arasında boşluk ya da üst üste binme kalmaz
-        const x0 = Math.floor(x * cw);
-        cell(x0, top, Math.floor((x + 1) * cw) - x0, ch, c, fg, bg, base);
+        const x0 = snap(x * cw);
+        cell(x0, top, snap((x + 1) * cw) - x0, h, c, fg, bg, base);
       }
     }
     if (!u) return;
@@ -153,8 +158,8 @@
     for (let k = 0; k < u.ch.length; k++) {
       if (!ui.on[k]) continue;
       const x = k % u.cols, y = (k / u.cols) | 0, c = u.ch[k];
-      const x0 = Math.floor(x * ui.cw), y0 = y * ui.ch;
-      cell(x0, y0, Math.floor((x + 1) * ui.cw) - x0, ui.ch, c, c === " " ? null : u.fg[k] || null, u.bg[k] || null, base);
+      const x0 = snap(x * ui.cw), y0 = snap(y * ui.ch);
+      cell(x0, y0, snap((x + 1) * ui.cw) - x0, snap((y + 1) * ui.ch) - y0, c, c === " " ? null : u.fg[k] || null, u.bg[k] || null, base);
     }
   }
 
