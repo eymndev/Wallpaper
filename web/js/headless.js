@@ -58,7 +58,7 @@
     themes: () => JSON.stringify(AW.themes.map((t) => ({ id: t.id, name: t.name }))),
     // Temayı seçer; ızgara boyutu için yazı ölçeği ve zemin rengi döner
     setTheme(id) {
-      st.theme = AW.themes.find((t) => t.id === id) || AW.themes[0];
+      st.theme = AW.findTheme(id) || AW.themes[0];
       base = parse(st.theme.bg || "#000000").slice(0, 3);
       cache = new Map();
       initTheme();

@@ -16,7 +16,7 @@ final class AsciiRenderer {
     /// Duvar kağıdı sayfasıyla aynı ölçü: genişliğe göre yazı boyu, satır yüksekliği 1.18 kat
     init(width: CGFloat, fontScale: Double) {
         let scale = CGFloat(fontScale)
-        fontSize = min(16, max(max(8, 10 * scale), width / 110 * scale))
+        fontSize = min(16, max(max(6, 10 * scale), width / 110 * scale))
         font = CTFontCreateWithName("Menlo-Regular" as CFString, fontSize, nil)
         fonts = [font]
         var m: UniChar = 77 // "M"

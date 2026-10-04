@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Bir duvar kağıdı görselini, görsel temaların kullandığı küçük veri dosyasına çevirir.
 
-Görsel 320x180'e küçültülür, 96 renge indirilir ve palet + piksel indeksleri base64 olarak
+Görsel 320x180'e (ya da --size ile verilen boyuta) küçültülür, 96 renge indirilir ve palet + piksel indeksleri base64 olarak
 web/js/themes/<dizin>/<id>.data.js dosyasına yazılır (varsayılan dizin: hypr). Temanın davranışı
 (efektler, metinler) ayrı tutulur, ör. web/js/themes/hypr.js.
 
-Kullanım: python3 scripts/encode-image.py <görsel> <tema-kimliği> [--dir hypr] [--erase x0,y0,x1,y1 ...]
+Kullanım: python3 scripts/encode-image.py <görsel> <tema-kimliği> [--dir hypr] [--size 640x360] [--erase x0,y0,x1,y1 ...]
 --erase: canlı çizilecek bölgeleri (0..1 oranlarıyla) arka plan rengiyle siler.
 Gerekenler: pip install pillow
 """
@@ -21,10 +21,12 @@ ap = argparse.ArgumentParser()
 ap.add_argument("image")
 ap.add_argument("id")
 ap.add_argument("--dir", default="hypr", help="web/js/themes altındaki çıktı dizini")
+ap.add_argument("--size", default=f"{W}x{H}", help="16:9 hedef boyut, ör. 640x360 (yüzlü görsellerde daha çok ayrıntı)")
 ap.add_argument("--erase", action="append", default=[], help="x0,y0,x1,y1 (0..1)")
 ap.add_argument("--erase-ring", action="append", default=[], help="cx,cy,r0,r1: halka (merkez 0..1, yarıçap yüksekliğe oranla)")
 ap.add_argument("--fill", default=None, help="silinen bölgenin rengi, ör. 0e0f12 (varsayılan: sol üst köşe)")
 args = ap.parse_args()
+W, H = (int(v) for v in args.size.lower().split("x"))
 
 src = Image.open(args.image)
 if src.mode not in ("RGB", "RGBA"):
