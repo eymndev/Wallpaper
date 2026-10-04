@@ -4,14 +4,14 @@ Bu depoda çalışacak geliştiriciler ve kodlama agent'ları (Codex, Claude vb.
 
 ## Proje özeti
 
-macOS için ASCII karakterlerle çizilen, hareketli ve canlı sistem istatistikleri (CPU, RAM, pil, ağ, çalan şarkı, hava durumu) gösteren duvar kağıdı ve aynı temalarla çalışan bir ekran koruyucu. 22 tema var (13 özgün + 9 Hyprland yarışma kazananı görselinden üretilen `hypr-*`). [riceutil](https://github.com/eymndev/riceutil-macos) bu uygulamayı kurar ve yönetir.
+macOS için ASCII karakterlerle çizilen, hareketli ve canlı sistem istatistikleri (CPU, RAM, pil, ağ, çalan şarkı, hava durumu) gösteren duvar kağıdı ve aynı temalarla çalışan bir ekran koruyucu. 23 tema var (13 özgün, 9 Hyprland yarışma kazananı görselinden üretilen `hypr-*` ve Death Note'un son sahnesinden `deathnote-misa`). [riceutil](https://github.com/eymndev/riceutil-macos) bu uygulamayı kurar ve yönetir.
 
 Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işareti var.
 
 ## Dizin yapısı
 
 - `web/`: Görünüşün tamamı. `index.html`, `js/grid.js` (karakter ızgarası), `js/main.js`, `js/ui.js` (panel, saat, tema adı), `js/image.js` (görselden tema), `js/headless.js` (tarayıcısız çizim, ekran koruyucu için).
-- `web/js/themes/`: Her tema bir dosya, `AW.register({...})` ile kaydolur. `hypr.js` + `hypr/*.data.js` görselden üretilmiş temalar.
+- `web/js/themes/`: Her tema bir dosya, `AW.register({...})` ile kaydolur. `hypr.js` + `hypr/*.data.js` ve `deathnote.js` + `deathnote/misa.data.js` görselden üretilmiş temalar.
 - `web/themes.tsv`: Tema listesi (`kimlik<TAB>ad`); riceutil temaları buradan okur.
 - `web/previews/<kimlik>.jpg`: Her temanın önizlemesi; riceutil GUI'sinin tema kartları kullanır.
 - `mac/Sources/AsciiWallpaper/`: Swift uygulama (SwiftPM). Her ekranda masaüstü seviyesinde bir `WKWebView` penceresi açar, istatistikleri saniyede bir `wallpaper.update(...)` ile sayfaya gönderir, menü çubuğu menüsü burada.
@@ -27,7 +27,7 @@ Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işa
 - `./scripts/install.sh [--no-saver] [--no-open]`: Derler, `~/Applications`'a (ya da `AW_INSTALL_DIR`) kurar, ekran koruyucuyu kurar, başlatır. `riceutil wallpaper install|update` bunu çağırır.
 - `node scripts/themes-manifest.mjs`: `web/themes.tsv`'yi yeniden üretir. Tema ekleyince/silince çalıştır; bir test bunu denetler.
 - `node scripts/previews.cjs [kimlik ...]`: `web/previews/*.jpg` üretir (Playwright gerekir). Yeni temanın önizlemesi yoksa test başarısız olur.
-- `python3 scripts/encode-image.py gorsel.png kimlik`: Görselden tema verisi üretir (Pillow gerekir).
+- `python3 scripts/encode-image.py gorsel.png kimlik [--dir hypr]`: Görselden tema verisi üretir (Pillow gerekir); `--dir` `web/js/themes` altındaki çıktı dizinidir.
 
 ## CI
 
@@ -201,3 +201,31 @@ Kullanıcının "Codex Proje Çalışma Talimatları"na uygun bir `AGENTS.md` ol
 
 #### Bilinen sorunlar ve sonraki adımlar
 - Yok.
+
+### 2026-10-04 — Death Note · Misa teması
+
+#### Amaç
+Kullanıcının gönderdiği Death Note son bölüm karesini (Misa, gün batımında boş trende) hareketli bir ASCII temasına çevirmek. Diğer temalar ve uygulama davranışı kapsam dışı.
+
+#### Yapılanlar
+- `web/js/themes/deathnote.js`: `deathnote-misa` ("Death Note · Misa") görsel teması. Pencerelerdeki gökyüzü canlı çizilir (akan bulutlar, geçen direk ve sarkan teller, üç dakikalık morla turuncu arası gün batımı döngüsü); tavan tutamakları sarkaç gibi bir iki hücre sallanır; hafif çapraz ışık süpürmesi.
+- `web/js/themes/deathnote/misa.data.js`: `encode-image.py` ile üretilen görsel verisi.
+- `scripts/encode-image.py`: Çıktı dizini için `--dir` seçeneği (varsayılan `hypr`, eski davranış aynı).
+- `web/index.html`, `web/themes.tsv`, `web/previews/deathnote-misa.jpg`, `README.md`: Tema kaydı, liste, önizleme ve belge.
+- `.github/workflows/ci.yml`: Ekran koruyucu çizim denetimine `deathnote-misa` eklendi.
+
+#### Hedef durumu
+- [x] Tema web görünümünde ve tarayıcısız sürücüde çiziliyor (Node testleri).
+- [ ] Ekran koruyucuda çizim: macOS CI'da `check-saver` ile doğrulanacak.
+
+#### Teknik kararlar
+- Kaynak kare kodlanmadan önce Misa'nın çevresi aydınlatıldı (parlaklık 1.7, kontrast 1.3, yumuşak maske; ardından tüm kareye renk 1.2, kontrast 1.2). Yoksa koyu saçı ve elbisesi ASCII'de koltuğa karışıyor. Kaynak görsel depoya eklenmedi.
+- Pencere bölgeleri görsel koordinatlarında çokgenlerle tanımlı; Misa'nın başı ikinci pencerenin önünde olduğu için ayrı bir çokgenle gökyüzünden hariç tutulur.
+- Bulutlar her hücre için üç karede bir hesaplanır, renk metinleri önbelleklenir: 300x94 ızgarada kare başına ~4 ms (Node), diğer görsel temalarla aynı düzeyde.
+
+#### Testler
+- `npm test`: 52 test geçti.
+- Swift tarafı değişmedi; ekran koruyucu çizimi macOS CI'da doğrulanır.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- 16:10 ekranlarda görselin kenarları kırpıldığı için sağ duvardaki pencere görünmez (16:9'da görünür).
