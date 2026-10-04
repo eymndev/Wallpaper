@@ -1,5 +1,11 @@
 # ASCII Wallpaper
 
+<p>
+  <a href="https://digital-strategy.ec.europa.eu/sites/default/files/2026-06/AI%20LABELS_3x2_AI%20GENERATED_black.png">
+    AI Generated
+  </a>
+</p>
+
 Mac masaüstü için ASCII karakterlerle çizilen, hareketli ve canlı sistem istatistikleri gösteren duvar kağıdı.
 
 Görünüşün tamamı `web/` klasöründeki HTML/CSS/JS ile yapılır. `mac/` klasöründeki küçük Swift uygulaması bu sayfayı her ekranda masaüstü ikonlarının arkasına yerleştirir ve CPU, RAM, pil, ağ, çalan şarkı ve hava durumu bilgisini saniyede bir sayfaya gönderir.
