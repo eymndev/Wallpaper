@@ -41,7 +41,7 @@ Swift kodu Linux/bulut ortamında derlenemez; Swift değişiklikleri yalnızca m
 - **Dış komutlar:** Uygulama `dev.eymn.ascii-wallpaper.command` adlı dağıtık bildirimi dinler (userInfo değerleri string: `theme`, `next`, `panel`/`clock`/`name` `1|0`, `rotate` dakika). Kabuktan `osascript -l JavaScript` ile gönderilir; bildirimin `object`'i string olmalı (`"riceutil"`), JXA `null`'u NSNull yapıp çökertir. Bu arayüzü değiştirirsen riceutil'i de güncelle.
 - **Ayarlar** `dev.eymn.ascii-wallpaper` UserDefaults alanındadır: `theme`, `showPanel`, `showClock`, `showThemeName`, `rotateMinutes`, `city`, `latitude`, `longitude`.
 - **Tema kimliğini değiştirirken** eskisini `web/js/util.js` içindeki `AW.aliases`'a ekle: kayıtlı ayarlar ve eski komutlar yeni temayı açar, uygulama kayıtlı ayarı yenisine çevirir.
-- **Görsel temalar** varsayılan olarak sık ızgarayla (`fontScale` 0.4) çizilir; zemin hücrenin kendi rengidir, karakter dokuyu verir. Masaüstü sayfası yalnız değişen hücreleri yeniden çizer (`main.js` `render`); yeni bir efekt her karede tüm hücreleri değiştirirse bu kazanç kaybolur.
+- **Görsel temalar** varsayılan olarak sık ızgarayla (`fontScale` 0.4) çizilir; zemin hücrenin kendi rengidir, karakter dokuyu verir. Saat, panel, tema adı ve bildirim bu temalarda normal boyutlu ayrı bir arayüz ızgarasına çizilir (sayfada `main.js` `ui`, ekran koruyucuda `AWH.resizeUI` ve ikinci `AsciiRenderer`); böylece arayüz her temada aynı boyuttadır. Masaüstü sayfası sahnede yalnız değişen hücreleri yeniden çizer (`main.js` `render`), arayüz katmanını her karede üstüne çizer; yeni bir efekt her karede tüm hücreleri değiştirirse bu kazanç kaybolur.
 - **Yeni tema eklerken:** `web/js/themes/` + `web/index.html` script listesi (`main.js`'ten önce), sonra `node scripts/themes-manifest.mjs` ve `node scripts/previews.cjs <kimlik>`, ardından `npm test`.
 - Hava durumu anahtarsız Open-Meteo kullanır; depoya API anahtarı veya sır ekleme.
 - **Kullanıcıya verilen terminal komutlarında yer tutucu yol kullanma** (`/klasorunun/yolu` gibi); kullanıcı komutları olduğu gibi yapıştırır. Gerçek yollar ver.
@@ -261,5 +261,31 @@ Kullanıcı isteği: Misa temasının adı `misa-train` olsun; tüm duvar kağı
 - Swift değişiklikleri (ayar senkronu, yazı boyu alt sınırı) yalnız macOS CI'da derlenir.
 
 #### Bilinen sorunlar ve sonraki adımlar
-- Görsel temalarda saat ve sistem paneli de sık ızgaraya çizildiği için daha küçük görünür.
+- Görsel temalarda saat ve sistem paneli de sık ızgaraya çizildiği için daha küçük görünür (aynı gün sonraki kayıtta düzeltildi).
 - Ekran koruyucu ayarında `deathnote-misa` seçiliyse rastgele temaya düşer (ekran koruyucu Swift tarafında takma ad yok).
+
+### 2026-10-04 — Görsel temalarda saat ve panel boyutu
+
+#### Amaç
+Kullanıcı geri bildirimi: sık ızgaradan sonra görsel temalarda saat ve CPU paneli çok küçük kaldı. Görsel sık kalsın, arayüz diğer temalardaki boyutuna dönsün; masaüstünde ve ekran koruyucuda.
+
+#### Yapılanlar
+- `web/js/main.js`: Temanın `fontScale` değeri 1 değilse arayüz (saat, panel, tema adı, bildirim) normal yazı boyutlu ayrı bir ızgaraya çizilir ve sahnenin üstüne her karede yeniden çizilir. Kaybolan arayüz hücrelerinin altındaki sahne hücreleri yeniden çizilir. Yarı saydam zeminli hücreler önce temanın zeminiyle doldurulur (değişen hücrede eski yazının paneldeki gölgesi kalmasın).
+- `web/js/headless.js`: `resizeUI(cols, rows, aspect)`; kurulduysa arayüz oraya çizilir, hücreleri karenin sonuna eklenir.
+- `mac/Saver/AsciiSaverView.swift`, `AsciiEngine.swift`, `AsciiRenderer.swift`: Ekran koruyucu aynı şekilde normal boyutlu ikinci bir `AsciiRenderer` ile arayüz katmanını çizer; zeminsiz hücreler saydam kalır.
+- `tests/headless.test.mjs`: Arayüz katmanı testi. Görsel temaların önizlemeleri yeniden üretildi.
+
+#### Hedef durumu
+- [x] Sayfada görsel temalarda saat ve panel prosedürel temalarla aynı boyutta (başsız Chromium'da 1710x1112 ekran görüntüsüyle denendi).
+- [ ] Ekran koruyucuda arayüz katmanı: macOS CI'da derlenir ve `check-saver` ile çizilir; gerçek Mac'te `Doğrulanması gerekiyor`.
+
+#### Teknik kararlar
+- Arayüz boyutu prosedürel temalardakiyle aynı (`fontScale` 1) seçildi; PR #7 öncesinde görsel temalarda 0.72 idi, artık tüm temalarda tutarlı.
+- Arayüz katmanı her karede baştan çizilir (birkaç yüz hücre); sahnenin değişen hücreleri altına çizilse de üstte kalır, ayrı bir kapanma hesabı gerekmez.
+
+#### Testler
+- `npm test`: 53 test geçti.
+- Swift değişiklikleri yalnız macOS CI'da derlenir.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Yok.

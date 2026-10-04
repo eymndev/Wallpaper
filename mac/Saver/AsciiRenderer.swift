@@ -63,10 +63,13 @@ final class AsciiRenderer {
         return result
     }
 
-    /// cells: hücre başına [karakter, yazı üst, yazı alt, zemin üst, zemin alt]
-    func draw(cells: [UInt16], cols: Int, rows: Int, background: CGColor, in ctx: CGContext, height: CGFloat) {
-        ctx.setFillColor(background)
-        ctx.fill(CGRect(x: 0, y: 0, width: CGFloat(cols) * cellWidth + 1, height: height))
+    /// cells: hücre başına [karakter, yazı üst, yazı alt, zemin üst, zemin alt].
+    /// background nil ise (arayüz katmanı) boş hücreler saydam kalır.
+    func draw(cells: [UInt16], cols: Int, rows: Int, background: CGColor?, in ctx: CGContext, height: CGFloat) {
+        if let background {
+            ctx.setFillColor(background)
+            ctx.fill(CGRect(x: 0, y: 0, width: CGFloat(cols) * cellWidth + 1, height: height))
+        }
         guard cells.count >= cols * rows * 5 else { return }
 
         // Zeminler: aynı renkli yan yana hücreleri tek dikdörtgende birleştir
