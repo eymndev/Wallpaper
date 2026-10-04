@@ -47,14 +47,13 @@
   };
 
   AW.imageTheme({
-    id: "deathnote-misa",
-    name: "Death Note · Misa",
+    id: "misa-train",
+    name: "Misa Train",
     image: "misa",
     bg: "#100509",
     gamma: 0.75,
     floor: 0.04,
     bgDim: 0.5,
-    fontScale: 0.6,
     sweep: { period: 26, width: 9, amp: 0.3 },
     ui: { accent: "#ff7ab0", accent2: "#ffb27a", frame: "#5c2a4c", panel: "rgba(18,5,14,0.88)" },
 

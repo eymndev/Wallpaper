@@ -4,7 +4,7 @@ Bu depoda çalışacak geliştiriciler ve kodlama agent'ları (Codex, Claude vb.
 
 ## Proje özeti
 
-macOS için ASCII karakterlerle çizilen, hareketli ve canlı sistem istatistikleri (CPU, RAM, pil, ağ, çalan şarkı, hava durumu) gösteren duvar kağıdı ve aynı temalarla çalışan bir ekran koruyucu. 23 tema var (13 özgün, 9 Hyprland yarışma kazananı görselinden üretilen `hypr-*` ve Death Note'un son sahnesinden `deathnote-misa`). [riceutil](https://github.com/eymndev/riceutil-macos) bu uygulamayı kurar ve yönetir.
+macOS için ASCII karakterlerle çizilen, hareketli ve canlı sistem istatistikleri (CPU, RAM, pil, ağ, çalan şarkı, hava durumu) gösteren duvar kağıdı ve aynı temalarla çalışan bir ekran koruyucu. 23 tema var (13 özgün, 9 Hyprland yarışma kazananı görselinden üretilen `hypr-*` ve Death Note'un son sahnesinden `misa-train`). [riceutil](https://github.com/eymndev/riceutil-macos) bu uygulamayı kurar ve yönetir.
 
 Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işareti var.
 
@@ -27,7 +27,7 @@ Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işa
 - `./scripts/install.sh [--no-saver] [--no-open]`: Derler, `~/Applications`'a (ya da `AW_INSTALL_DIR`) kurar, ekran koruyucuyu kurar, başlatır. `riceutil wallpaper install|update` bunu çağırır.
 - `node scripts/themes-manifest.mjs`: `web/themes.tsv`'yi yeniden üretir. Tema ekleyince/silince çalıştır; bir test bunu denetler.
 - `node scripts/previews.cjs [kimlik ...]`: `web/previews/*.jpg` üretir (Playwright gerekir). Yeni temanın önizlemesi yoksa test başarısız olur.
-- `python3 scripts/encode-image.py gorsel.png kimlik [--dir hypr]`: Görselden tema verisi üretir (Pillow gerekir); `--dir` `web/js/themes` altındaki çıktı dizinidir.
+- `python3 scripts/encode-image.py gorsel.png kimlik [--dir hypr] [--size 640x360]`: Görselden tema verisi üretir (Pillow gerekir); `--dir` `web/js/themes` altındaki çıktı dizini, `--size` hedef boyut (varsayılan 320x180).
 
 ## CI
 
@@ -40,6 +40,8 @@ Swift kodu Linux/bulut ortamında derlenemez; Swift değişiklikleri yalnızca m
 - **Ekran koruyucuda web görünümü kullanma.** macOS ekran koruyucuları kısıtlı bir süreçte çalıştırır ve `WKWebView` orada hiçbir şey çizmez (siyah ekran). Ekran koruyucu temaları süreç içinde JavaScriptCore ile çalıştırır. Masaüstü uygulaması `WKWebView` kullanmaya devam eder, orada çalışıyor.
 - **Dış komutlar:** Uygulama `dev.eymn.ascii-wallpaper.command` adlı dağıtık bildirimi dinler (userInfo değerleri string: `theme`, `next`, `panel`/`clock`/`name` `1|0`, `rotate` dakika). Kabuktan `osascript -l JavaScript` ile gönderilir; bildirimin `object`'i string olmalı (`"riceutil"`), JXA `null`'u NSNull yapıp çökertir. Bu arayüzü değiştirirsen riceutil'i de güncelle.
 - **Ayarlar** `dev.eymn.ascii-wallpaper` UserDefaults alanındadır: `theme`, `showPanel`, `showClock`, `showThemeName`, `rotateMinutes`, `city`, `latitude`, `longitude`.
+- **Tema kimliğini değiştirirken** eskisini `web/js/util.js` içindeki `AW.aliases`'a ekle: kayıtlı ayarlar ve eski komutlar yeni temayı açar, uygulama kayıtlı ayarı yenisine çevirir.
+- **Görsel temalar** varsayılan olarak sık ızgarayla (`fontScale` 0.4) çizilir; zemin hücrenin kendi rengidir, karakter dokuyu verir. Masaüstü sayfası yalnız değişen hücreleri yeniden çizer (`main.js` `render`); yeni bir efekt her karede tüm hücreleri değiştirirse bu kazanç kaybolur.
 - **Yeni tema eklerken:** `web/js/themes/` + `web/index.html` script listesi (`main.js`'ten önce), sonra `node scripts/themes-manifest.mjs` ve `node scripts/previews.cjs <kimlik>`, ardından `npm test`.
 - Hava durumu anahtarsız Open-Meteo kullanır; depoya API anahtarı veya sır ekleme.
 - **Kullanıcıya verilen terminal komutlarında yer tutucu yol kullanma** (`/klasorunun/yolu` gibi); kullanıcı komutları olduğu gibi yapıştırır. Gerçek yollar ver.
@@ -229,3 +231,35 @@ Kullanıcının gönderdiği Death Note son bölüm karesini (Misa, gün batım�
 
 #### Bilinen sorunlar ve sonraki adımlar
 - 16:10 ekranlarda görselin kenarları kırpıldığı için sağ duvardaki pencere görünmez (16:9'da görünür).
+
+### 2026-10-04 — misa-train adı ve görsel temalarda ASCII kalitesi
+
+#### Amaç
+Kullanıcı isteği: Misa temasının adı `misa-train` olsun; tüm duvar kağıtlarında ASCII kalitesi artsın, çünkü görsel tabanlı temalarda yüzler anlaşılmıyor. Prosedürel temaların görünüşü kapsam dışı (yalnız çizim hızlandırması onları da etkiler).
+
+#### Yapılanlar
+- `web/js/themes/deathnote.js`: Kimlik `misa-train`, ad "Misa Train". `web/previews/misa-train.jpg` (eskisi silindi), `web/themes.tsv`, CI ekran koruyucu denetimi güncellendi.
+- `web/js/util.js`: `AW.aliases` ve `AW.findTheme`; `deathnote-misa` → `misa-train`. `main.js` ve `headless.js` temayı bununla bulur.
+- `mac/Sources/AsciiWallpaper/WallpaperController.swift`: Sayfanın bildirdiği tema kayıtlı ayardan farklıysa (takma ad çevrildiyse) ayar güncellenir.
+- `web/js/image.js`: Görsel temalarda varsayılan `fontScale` 0.72 → 0.4; zemin hücrenin kendi rengi (yalnız çevresinden çok parlak noktalarda komşunun en karanlığı); görselden çift doğrusal örnekleme; kenar karakteri eşiği 0.32 → 0.5 (yumuşak geçişler doku olarak kalır); renkler 4'ün katlarına yuvarlanır; varsayılan `bgDim` 0.5 → 0.6.
+- `web/js/main.js`: Yalnız değişen hücreler yeniden çizilir; hücre dikdörtgenleri tam piksele oturur. Yazı boyu alt sınırı 8 → 6 px (`mac/Saver/AsciiRenderer.swift` ile aynı).
+- `scripts/encode-image.py`: `--size` seçeneği. Misa görseli 640x360'ta yeniden kodlandı (aynı ön işlemeyle).
+- Tüm görsel temaların önizlemeleri yeniden üretildi; `README.md` güncellendi.
+
+#### Hedef durumu
+- [x] `misa-train` kimliği, eski kimlik takma ad olarak çalışıyor (Node testleri ve tarayıcıda denendi).
+- [x] Görsel temalarda daha sık ızgara ve gerçek renkli zemin; önce/sonra karşılaştırması PR'da.
+- [ ] Ekran koruyucuda yeni sık ızgaranın akıcılığı: CI yalnız çizildiğini doğrular, gerçek Mac'te `Doğrulanması gerekiyor`.
+
+#### Teknik kararlar
+- Yüzlerin okunmasını en çok zemin rengi ve hücre yoğunluğu belirliyor: eski "komşuların en karanlığı" zemini tonları yok ediyordu. Karakter seçimi parlaklık rampası olarak kaldı.
+- Hypr görsellerinin kaynakları bu ortamdan indirilemedi (hypr.land ağ politikasıyla engelli), bu yüzden 320x180 verileri aynı kaldı; kazanç yeni çizimden geliyor. Kaynaklar bulunursa `--size 640x360` ile yeniden kodlanabilir.
+- Sık ızgarada her kareyi baştan çizmek pahalı olduğu için değişen hücre çizimi eklendi: başsız Chromium'da `hypr-kath` görev süresi saniyede ~924 ms'den (eski ızgara, tam çizim) ~609 ms'ye düştü, `misa-train` ~280 ms. Gerçek Mac'te GPU'lu canvas ile farklı olabilir.
+
+#### Testler
+- `npm test`: 52 test geçti.
+- Swift değişiklikleri (ayar senkronu, yazı boyu alt sınırı) yalnız macOS CI'da derlenir.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Görsel temalarda saat ve sistem paneli de sık ızgaraya çizildiği için daha küçük görünür.
+- Ekran koruyucu ayarında `deathnote-misa` seçiliyse rastgele temaya düşer (ekran koruyucu Swift tarafında takma ad yok).

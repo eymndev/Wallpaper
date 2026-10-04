@@ -44,9 +44,9 @@ Görünüşün tamamı `web/` klasöründeki HTML/CSS/JS ile yapılır. `mac/` k
 | `hypr-srev` | srev | Sarı ve turkuaz ayrıntılar parlar, ışık süpürür |
 | `hypr-vdawg` | VDawg | Ekranlar titrer, ışık huzmesinden zerreler yükselir |
 
-### Death Note · Misa
+### Misa Train
 
-`deathnote-misa`: Death Note'un son bölümünden, Misa'nın Light'ın öldüğünden habersiz gün batımında boş bir trende oturduğu sahne. Vagon görselden üretilir; pencerelerdeki gökyüzü canlı çizilir: bulutlar akar, direkler ve teller geçer, gün batımının rengi birkaç dakikada bir morla turuncu arasında gidip gelir, tavandaki tutamaklar trenin sallantısıyla sallanır. CPU yükseldikçe tren hızlanır.
+`misa-train` (eski kimliği `deathnote-misa` da çalışır): Death Note'un son bölümünden, Misa'nın Light'ın öldüğünden habersiz gün batımında boş bir trende oturduğu sahne. Vagon görselden üretilir; pencerelerdeki gökyüzü canlı çizilir: bulutlar akar, direkler ve teller geçer, gün batımının rengi birkaç dakikada bir morla turuncu arasında gidip gelir, tavandaki tutamaklar trenin sallantısıyla sallanır. CPU yükseldikçe tren hızlanır.
 
 ## Mac'te kurulum
 
@@ -155,7 +155,7 @@ Bir görseli tema verisine çevirmek için (Pillow gerekir):
 python3 scripts/encode-image.py gorsel.png benim-tema
 ```
 
-Bu `web/js/themes/hypr/benim-tema.data.js` dosyasını üretir (`--dir deathnote` gibi bir seçenekle `web/js/themes` altında başka bir dizine yazar). Dosyayı `index.html`'e `js/image.js`'ten sonra ekle ve `AW.imageTheme({ id, name, image: "benim-tema", bg, glow, sweep, ... })` ile kaydet; seçeneklerin örnekleri `web/js/themes/hypr.js` içinde.
+Bu `web/js/themes/hypr/benim-tema.data.js` dosyasını üretir (`--dir deathnote` gibi bir seçenekle `web/js/themes` altında başka bir dizine yazar). Varsayılan boyut 320x180; yüz gibi ince ayrıntı olan görsellerde `--size 640x360` kullan. Dosyayı `index.html`'e `js/image.js`'ten sonra ekle ve `AW.imageTheme({ id, name, image: "benim-tema", bg, glow, sweep, ... })` ile kaydet; seçeneklerin örnekleri `web/js/themes/hypr.js` içinde.
 
 Tema ekledikten sonra `node scripts/themes-manifest.mjs` ile `web/themes.tsv` listesini güncelle (riceutil temaları buradan okur).
 

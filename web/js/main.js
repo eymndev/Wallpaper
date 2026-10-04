@@ -43,7 +43,7 @@
   }
 
   function findTheme(id) {
-    return AW.themes.find((t) => t.id === id) || AW.themes[0];
+    return AW.findTheme(id) || AW.themes[0];
   }
 
   function setTheme(id, announce = true) {
@@ -75,32 +75,47 @@
     canvas.height = Math.round(innerHeight * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     state.fontScale = (state.theme && state.theme.fontScale) || 1;
-    const fs = AW.clamp((innerWidth / 110) * state.fontScale, Math.max(8, 10 * state.fontScale), 16);
+    const fs = AW.clamp((innerWidth / 110) * state.fontScale, Math.max(6, 10 * state.fontScale), 16);
     ctx.font = `${fs}px ${FONT_STACK}`;
     ctx.textBaseline = "top";
     state.cw = ctx.measureText("M").width;
     state.ch = Math.round(fs * 1.18);
     state.grid.resize(Math.ceil(innerWidth / state.cw), Math.ceil(innerHeight / state.ch), state.cw / state.ch);
+    drawn.full = true; // canvas boyutu değişince içeriği silinir
     if (state.theme) initTheme();
   }
 
+  // Bir önceki karede ekranda olan hücreler. Yalnız değişen hücreler yeniden çizilir: görsel temalarda
+  // hücrelerin çoğu kareden kareye aynı kalır, sık ızgarada her kareyi baştan çizmek gereksiz pahalı.
+  const drawn = { ch: [], fg: [], bg: [], base: null, full: true };
+
   function render() {
-    const g = state.grid, { cw, ch } = state;
-    ctx.fillStyle = state.theme.bg || "#000";
-    ctx.fillRect(0, 0, innerWidth, innerHeight);
-    let lastFill = null;
+    const g = state.grid, { cw, ch } = state, n = g.cols * g.rows;
+    const base = state.theme.bg || "#000";
+    if (drawn.full || drawn.ch.length !== n || drawn.base !== base) {
+      ctx.fillStyle = base;
+      ctx.fillRect(0, 0, innerWidth, innerHeight);
+      drawn.ch = new Array(n).fill(" ");
+      drawn.fg = new Array(n).fill(null);
+      drawn.bg = new Array(n).fill(null);
+      drawn.base = base;
+      drawn.full = false;
+    }
+    let last = null;
     for (let y = 0; y < g.rows; y++) {
+      const top = y * ch;
       for (let x = 0; x < g.cols; x++) {
         const k = y * g.cols + x;
-        const bg = g.bg[k];
-        if (bg) {
-          ctx.fillStyle = lastFill = bg;
-          ctx.fillRect(x * cw, y * ch, cw + 0.6, ch + 0.6);
-        }
-        const c = g.ch[k], fg = g.fg[k];
-        if (c === " " || !fg) continue;
-        if (fg !== lastFill) ctx.fillStyle = lastFill = fg;
-        ctx.fillText(c, x * cw, y * ch + 1);
+        const c = g.ch[k], fg = c === " " ? null : g.fg[k] || null, bg = g.bg[k] || null;
+        if (c === drawn.ch[k] && fg === drawn.fg[k] && bg === drawn.bg[k]) continue;
+        drawn.ch[k] = c; drawn.fg[k] = fg; drawn.bg[k] = bg;
+        // Hücreler tam piksellere oturur: komşular arasında boşluk ya da üst üste binme kalmaz
+        const x0 = Math.floor(x * cw), x1 = Math.floor((x + 1) * cw);
+        ctx.fillStyle = last = bg || base;
+        ctx.fillRect(x0, top, x1 - x0, ch);
+        if (!fg) continue;
+        if (fg !== last) ctx.fillStyle = last = fg;
+        ctx.fillText(c, x * cw, top + 1);
       }
     }
   }
