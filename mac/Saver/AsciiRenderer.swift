@@ -16,7 +16,7 @@ final class AsciiRenderer {
     /// Duvar kağıdı sayfasıyla aynı ölçü: genişliğe göre yazı boyu, satır yüksekliği 1.18 kat
     init(width: CGFloat, fontScale: Double) {
         let scale = CGFloat(fontScale)
-        fontSize = min(16, max(max(8, 10 * scale), width / 110 * scale))
+        fontSize = min(16, max(max(6, 10 * scale), width / 110 * scale))
         font = CTFontCreateWithName("Menlo-Regular" as CFString, fontSize, nil)
         fonts = [font]
         var m: UniChar = 77 // "M"
@@ -63,10 +63,13 @@ final class AsciiRenderer {
         return result
     }
 
-    /// cells: hücre başına [karakter, yazı üst, yazı alt, zemin üst, zemin alt]
-    func draw(cells: [UInt16], cols: Int, rows: Int, background: CGColor, in ctx: CGContext, height: CGFloat) {
-        ctx.setFillColor(background)
-        ctx.fill(CGRect(x: 0, y: 0, width: CGFloat(cols) * cellWidth + 1, height: height))
+    /// cells: hücre başına [karakter, yazı üst, yazı alt, zemin üst, zemin alt].
+    /// background nil ise (arayüz katmanı) boş hücreler saydam kalır.
+    func draw(cells: [UInt16], cols: Int, rows: Int, background: CGColor?, in ctx: CGContext, height: CGFloat) {
+        if let background {
+            ctx.setFillColor(background)
+            ctx.fill(CGRect(x: 0, y: 0, width: CGFloat(cols) * cellWidth + 1, height: height))
+        }
         guard cells.count >= cols * rows * 5 else { return }
 
         // Zeminler: aynı renkli yan yana hücreleri tek dikdörtgende birleştir

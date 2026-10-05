@@ -63,7 +63,7 @@ jobs:
       - name: Ekran koruyucuyu yükleyip çizdir
         run: |
           swiftc -o build/check-saver scripts/check-saver.swift
-          build/check-saver "build/ASCII Wallpaper.saver" lake matrix hypr-kath hypr-sollee hypr-corndog hypr-alba4k
+          build/check-saver "build/ASCII Wallpaper.saver" lake matrix hypr-kath hypr-sollee hypr-corndog hypr-alba4k misa-train
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -11,10 +11,13 @@ final class AsciiSaverView: ScreenSaverView {
     private let claude = ClaudeMonitor()
     private var showClaude = true
     private var renderer: AsciiRenderer?
+    private var uiRenderer: AsciiRenderer?
     private var info: AsciiEngine.Info?
     private var background = CGColor(gray: 0, alpha: 1)
     private var grid = (cols: 0, rows: 0)
+    private var uiGrid = (cols: 0, rows: 0)
     private var cells: [UInt16] = []
+    private var uiCells: [UInt16] = []
     private var themeID = ""
     private var lastFrame: TimeInterval = 0
     private var lastStats: TimeInterval = 0
@@ -71,11 +74,31 @@ final class AsciiSaverView: ScreenSaverView {
         let size = renderer.gridSize(for: bounds.size)
         engine.resize(cols: size.cols, rows: size.rows, aspect: size.aspect)
         grid = (size.cols, size.rows)
+        // Sık ızgaralı temalarda saat ve panel normal boyutlu ayrı bir katmana çizilir (sayfadaki gibi)
+        if info.fontScale != 1 {
+            let ui = AsciiRenderer(width: bounds.width, fontScale: 1)
+            let uiSize = ui.gridSize(for: bounds.size)
+            engine.resizeUI(cols: uiSize.cols, rows: uiSize.rows, aspect: uiSize.aspect)
+            uiGrid = (uiSize.cols, uiSize.rows)
+            uiRenderer = ui
+        } else {
+            engine.resizeUI(cols: 0, rows: 0, aspect: 0.5)
+            uiGrid = (0, 0)
+            uiRenderer = nil
+        }
         background = CGColor(srgbRed: info.bg.r / 255, green: info.bg.g / 255, blue: info.bg.b / 255, alpha: 1)
         self.info = info
         self.renderer = renderer
         sendStats()
-        cells = engine.frame(dt: 0.05)
+        takeFrame(dt: 0.05)
+    }
+
+    private func takeFrame(dt: Double) {
+        guard let engine else { return }
+        let all = engine.frame(dt: dt)
+        let n = grid.cols * grid.rows * 5
+        cells = Array(all.prefix(n))
+        uiCells = all.count > n ? Array(all[n...]) : []
     }
 
     override func setFrameSize(_ newSize: NSSize) {
@@ -100,13 +123,13 @@ final class AsciiSaverView: ScreenSaverView {
     }
 
     override func animateOneFrame() {
-        guard let engine else { return }
+        guard engine != nil else { return }
         if renderer == nil { layoutGrid() }
         let now = ProcessInfo.processInfo.systemUptime
         let dt = lastFrame > 0 ? min(0.25, now - lastFrame) : 0.05
         lastFrame = now
         if now - lastStats >= 1 { sendStats() }
-        cells = engine.frame(dt: dt)
+        takeFrame(dt: dt)
         needsDisplay = true
     }
 
@@ -132,6 +155,9 @@ final class AsciiSaverView: ScreenSaverView {
             return
         }
         renderer.draw(cells: cells, cols: grid.cols, rows: grid.rows, background: background, in: ctx, height: bounds.height)
+        if let uiRenderer, uiCells.count >= uiGrid.cols * uiGrid.rows * 5 {
+            uiRenderer.draw(cells: uiCells, cols: uiGrid.cols, rows: uiGrid.rows, background: nil, in: ctx, height: bounds.height)
+        }
     }
 
     // MARK: Ayarlar penceresi

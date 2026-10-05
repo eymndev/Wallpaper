@@ -8,6 +8,10 @@
     if (!AW.themes.some((t) => t.id === theme.id)) AW.themes.push(theme);
   };
 
+  // Adı değişen temaların eski kimlikleri: kayıtlı ayarlar ve eski komutlar yeni temayı açsın
+  AW.aliases = { "deathnote-misa": "misa-train" };
+  AW.findTheme = (id) => AW.themes.find((t) => t.id === (AW.aliases[id] || id));
+
   AW.clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
   AW.lerp = (a, b, t) => a + (b - a) * t;
   AW.fract = (v) => v - Math.floor(v);

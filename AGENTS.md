@@ -4,14 +4,14 @@ Bu depoda çalışacak geliştiriciler ve kodlama agent'ları (Codex, Claude vb.
 
 ## Proje özeti
 
-macOS için ASCII karakterlerle çizilen, hareketli ve canlı sistem istatistikleri (CPU, RAM, pil, ağ, çalan şarkı, hava durumu) ve çalışan Claude Code oturumunu gösteren duvar kağıdı ve aynı temalarla çalışan bir ekran koruyucu. 22 tema var (13 özgün + 9 Hyprland yarışma kazananı görselinden üretilen `hypr-*`). [riceutil](https://github.com/eymndev/riceutil-macos) bu uygulamayı kurar ve yönetir.
+macOS için ASCII karakterlerle çizilen, hareketli ve canlı sistem istatistikleri (CPU, RAM, pil, ağ, çalan şarkı, hava durumu) ve çalışan Claude Code oturumunu gösteren duvar kağıdı ve aynı temalarla çalışan bir ekran koruyucu. 23 tema var (13 özgün, 9 Hyprland yarışma kazananı görselinden üretilen `hypr-*` ve Death Note'un son sahnesinden `misa-train`). [riceutil](https://github.com/eymndev/riceutil-macos) bu uygulamayı kurar ve yönetir.
 
 Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işareti var.
 
 ## Dizin yapısı
 
 - `web/`: Görünüşün tamamı. `index.html`, `js/grid.js` (karakter ızgarası), `js/main.js`, `js/ui.js` (panel, saat, tema adı, Claude Code paneli ve Clawd), `js/image.js` (görselden tema), `js/headless.js` (tarayıcısız çizim, ekran koruyucu için).
-- `web/js/themes/`: Her tema bir dosya, `AW.register({...})` ile kaydolur. `hypr.js` + `hypr/*.data.js` görselden üretilmiş temalar.
+- `web/js/themes/`: Her tema bir dosya, `AW.register({...})` ile kaydolur. `hypr.js` + `hypr/*.data.js` ve `deathnote.js` + `deathnote/misa.data.js` görselden üretilmiş temalar.
 - `web/themes.tsv`: Tema listesi (`kimlik<TAB>ad`); riceutil temaları buradan okur.
 - `web/previews/<kimlik>.jpg`: Her temanın önizlemesi; riceutil GUI'sinin tema kartları kullanır.
 - `mac/Sources/AsciiWallpaper/`: Swift uygulama (SwiftPM). Her ekranda masaüstü seviyesinde bir `WKWebView` penceresi açar, istatistikleri saniyede bir `wallpaper.update(...)` ile sayfaya gönderir, menü çubuğu menüsü burada.
@@ -19,6 +19,7 @@ Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işa
 - `mac/Saver/`: Ekran koruyucu (`.saver`). Temaları JavaScriptCore + `web/js/headless.js` ile çalıştırır, Core Text ile çizer.
 - `docs/`: README görselleri (`hero.jpg`, `claude-panel.jpg`; Claude paneli `?claude=demo` örnek verisiyle çekildi, gerçek oturum içeriği README'ye girmesin).
 - `scripts/`: Derleme, kurulum ve üretim betikleri (aşağıda).
+- `docs/gifs/`: README galerisindeki tema GIF'leri.
 - `tests/`: Node testleri (`node --test`).
 
 ## Komutlar
@@ -29,7 +30,8 @@ Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işa
 - `./scripts/install.sh [--no-saver] [--no-open]`: Derler, `~/Applications`'a (ya da `AW_INSTALL_DIR`) kurar, ekran koruyucuyu kurar, başlatır. `riceutil wallpaper install|update` bunu çağırır.
 - `node scripts/themes-manifest.mjs`: `web/themes.tsv`'yi yeniden üretir. Tema ekleyince/silince çalıştır; bir test bunu denetler.
 - `node scripts/previews.cjs [kimlik ...]`: `web/previews/*.jpg` üretir (Playwright gerekir). Yeni temanın önizlemesi yoksa test başarısız olur.
-- `python3 scripts/encode-image.py gorsel.png kimlik`: Görselden tema verisi üretir (Pillow gerekir).
+- `node scripts/gifs.cjs [kimlik ...]`: README galerisindeki `docs/gifs/*.gif` dosyalarını üretir (Playwright + Pillow; sayfanın saatini Playwright ile ilerletir, 3 sn, 8 kare/sn, 720x450).
+- `python3 scripts/encode-image.py gorsel.png kimlik [--dir hypr] [--size 640x360]`: Görselden tema verisi üretir (Pillow gerekir); `--dir` `web/js/themes` altındaki çıktı dizini, `--size` hedef boyut (varsayılan 320x180).
 
 ## CI
 
@@ -42,7 +44,9 @@ Swift kodu Linux/bulut ortamında derlenemez; Swift değişiklikleri yalnızca m
 - **Ekran koruyucuda web görünümü kullanma.** macOS ekran koruyucuları kısıtlı bir süreçte çalıştırır ve `WKWebView` orada hiçbir şey çizmez (siyah ekran). Ekran koruyucu temaları süreç içinde JavaScriptCore ile çalıştırır. Masaüstü uygulaması `WKWebView` kullanmaya devam eder, orada çalışıyor.
 - **Dış komutlar:** Uygulama `dev.eymn.ascii-wallpaper.command` adlı dağıtık bildirimi dinler (userInfo değerleri string: `theme`, `next`, `panel`/`clock`/`name` `1|0`, `rotate` dakika). Kabuktan `osascript -l JavaScript` ile gönderilir; bildirimin `object`'i string olmalı (`"riceutil"`), JXA `null`'u NSNull yapıp çökertir. Bu arayüzü değiştirirsen riceutil'i de güncelle.
 - **Ayarlar** `dev.eymn.ascii-wallpaper` UserDefaults alanındadır: `theme`, `showPanel`, `showClock`, `showThemeName`, `showClaude`, `rotateMinutes`, `city`, `latitude`, `longitude`. Ekran koruyucu kendi `dev.eymn.ascii-wallpaper.saver` alanını kullanır (`theme`, `showPanel`, `showClock`, `showThemeName`, `showClaude`).
-- **Yeni tema eklerken:** `web/js/themes/` + `web/index.html` script listesi (`main.js`'ten önce), sonra `node scripts/themes-manifest.mjs` ve `node scripts/previews.cjs <kimlik>`, ardından `npm test`.
+- **Tema kimliğini değiştirirken** eskisini `web/js/util.js` içindeki `AW.aliases`'a ekle: kayıtlı ayarlar ve eski komutlar yeni temayı açar, uygulama kayıtlı ayarı yenisine çevirir.
+- **Görsel temalar** varsayılan olarak sık ızgarayla (`fontScale` 0.4) çizilir; zemin hücrenin kendi rengidir, karakter dokuyu verir. Saat, panel, tema adı ve bildirim bu temalarda normal boyutlu ayrı bir arayüz ızgarasına çizilir (sayfada `main.js` `ui`, ekran koruyucuda `AWH.resizeUI` ve ikinci `AsciiRenderer`); böylece arayüz her temada aynı boyuttadır. Masaüstü sayfası sahnede yalnız değişen hücreleri yeniden çizer (`main.js` `render`), arayüz katmanını her karede üstüne çizer; yeni bir efekt her karede tüm hücreleri değiştirirse bu kazanç kaybolur.
+- **Yeni tema eklerken:** `web/js/themes/` + `web/index.html` script listesi (`main.js`'ten önce), sonra `node scripts/themes-manifest.mjs`, `node scripts/previews.cjs <kimlik>` ve `node scripts/gifs.cjs <kimlik>` (README galerisine hücre ekle), ardından `npm test`. Görünüşü değiştiren bir değişiklikten sonra önizlemeleri ve GIF'leri yeniden üret.
 - **Claude Code verisi:** `update(...)` verisindeki `claude` alanı (yoksa `null`) panelin tek kaynağıdır; panel yalnızca bu alan doluyken çizilir. Veri `~/.claude/sessions/*.json` + oturum kaydı JSONL'den okunur; bunlar Claude Code'un belgelenmemiş iç dosyalarıdır, biçim değişirse `ClaudeMonitor.swift` güncellenmeli. Ekran koruyucu süreci korumalı alanda ama `/` altını salt okunur okuyabiliyor (legacyScreenSaver yetkisi); orada `NSHomeDirectory()` kapsayıcıyı gösterdiği için ev dizini `getpwuid` ile bulunur. Token toplamı önbellekten okunan tokenları saymaz (her çağrıda tekrar sayılırdı).
 - Hava durumu anahtarsız Open-Meteo kullanır; depoya API anahtarı veya sır ekleme.
 - **Kullanıcıya verilen terminal komutlarında yer tutucu yol kullanma** (`/klasorunun/yolu` gibi); kullanıcı komutları olduğu gibi yapıştırır. Gerçek yollar ver.
@@ -205,6 +209,116 @@ Kullanıcının "Codex Proje Çalışma Talimatları"na uygun bir `AGENTS.md` ol
 #### Bilinen sorunlar ve sonraki adımlar
 - Yok.
 
+### 2026-10-04 — Death Note · Misa teması
+
+#### Amaç
+Kullanıcının gönderdiği Death Note son bölüm karesini (Misa, gün batımında boş trende) hareketli bir ASCII temasına çevirmek. Diğer temalar ve uygulama davranışı kapsam dışı.
+
+#### Yapılanlar
+- `web/js/themes/deathnote.js`: `deathnote-misa` ("Death Note · Misa") görsel teması. Pencerelerdeki gökyüzü canlı çizilir (akan bulutlar, geçen direk ve sarkan teller, üç dakikalık morla turuncu arası gün batımı döngüsü); tavan tutamakları sarkaç gibi bir iki hücre sallanır; hafif çapraz ışık süpürmesi.
+- `web/js/themes/deathnote/misa.data.js`: `encode-image.py` ile üretilen görsel verisi.
+- `scripts/encode-image.py`: Çıktı dizini için `--dir` seçeneği (varsayılan `hypr`, eski davranış aynı).
+- `web/index.html`, `web/themes.tsv`, `web/previews/deathnote-misa.jpg`, `README.md`: Tema kaydı, liste, önizleme ve belge.
+- `.github/workflows/ci.yml`: Ekran koruyucu çizim denetimine `deathnote-misa` eklendi.
+
+#### Hedef durumu
+- [x] Tema web görünümünde ve tarayıcısız sürücüde çiziliyor (Node testleri).
+- [ ] Ekran koruyucuda çizim: macOS CI'da `check-saver` ile doğrulanacak.
+
+#### Teknik kararlar
+- Kaynak kare kodlanmadan önce Misa'nın çevresi aydınlatıldı (parlaklık 1.7, kontrast 1.3, yumuşak maske; ardından tüm kareye renk 1.2, kontrast 1.2). Yoksa koyu saçı ve elbisesi ASCII'de koltuğa karışıyor. Kaynak görsel depoya eklenmedi.
+- Pencere bölgeleri görsel koordinatlarında çokgenlerle tanımlı; Misa'nın başı ikinci pencerenin önünde olduğu için ayrı bir çokgenle gökyüzünden hariç tutulur.
+- Bulutlar her hücre için üç karede bir hesaplanır, renk metinleri önbelleklenir: 300x94 ızgarada kare başına ~4 ms (Node), diğer görsel temalarla aynı düzeyde.
+
+#### Testler
+- `npm test`: 52 test geçti.
+- Swift tarafı değişmedi; ekran koruyucu çizimi macOS CI'da doğrulanır.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- 16:10 ekranlarda görselin kenarları kırpıldığı için sağ duvardaki pencere görünmez (16:9'da görünür).
+
+### 2026-10-04 — misa-train adı ve görsel temalarda ASCII kalitesi
+
+#### Amaç
+Kullanıcı isteği: Misa temasının adı `misa-train` olsun; tüm duvar kağıtlarında ASCII kalitesi artsın, çünkü görsel tabanlı temalarda yüzler anlaşılmıyor. Prosedürel temaların görünüşü kapsam dışı (yalnız çizim hızlandırması onları da etkiler).
+
+#### Yapılanlar
+- `web/js/themes/deathnote.js`: Kimlik `misa-train`, ad "Misa Train". `web/previews/misa-train.jpg` (eskisi silindi), `web/themes.tsv`, CI ekran koruyucu denetimi güncellendi.
+- `web/js/util.js`: `AW.aliases` ve `AW.findTheme`; `deathnote-misa` → `misa-train`. `main.js` ve `headless.js` temayı bununla bulur.
+- `mac/Sources/AsciiWallpaper/WallpaperController.swift`: Sayfanın bildirdiği tema kayıtlı ayardan farklıysa (takma ad çevrildiyse) ayar güncellenir.
+- `web/js/image.js`: Görsel temalarda varsayılan `fontScale` 0.72 → 0.4; zemin hücrenin kendi rengi (yalnız çevresinden çok parlak noktalarda komşunun en karanlığı); görselden çift doğrusal örnekleme; kenar karakteri eşiği 0.32 → 0.5 (yumuşak geçişler doku olarak kalır); renkler 4'ün katlarına yuvarlanır; varsayılan `bgDim` 0.5 → 0.6.
+- `web/js/main.js`: Yalnız değişen hücreler yeniden çizilir; hücre dikdörtgenleri tam piksele oturur. Yazı boyu alt sınırı 8 → 6 px (`mac/Saver/AsciiRenderer.swift` ile aynı).
+- `scripts/encode-image.py`: `--size` seçeneği. Misa görseli 640x360'ta yeniden kodlandı (aynı ön işlemeyle).
+- Tüm görsel temaların önizlemeleri yeniden üretildi; `README.md` güncellendi.
+
+#### Hedef durumu
+- [x] `misa-train` kimliği, eski kimlik takma ad olarak çalışıyor (Node testleri ve tarayıcıda denendi).
+- [x] Görsel temalarda daha sık ızgara ve gerçek renkli zemin; önce/sonra karşılaştırması PR'da.
+- [ ] Ekran koruyucuda yeni sık ızgaranın akıcılığı: CI yalnız çizildiğini doğrular, gerçek Mac'te `Doğrulanması gerekiyor`.
+
+#### Teknik kararlar
+- Yüzlerin okunmasını en çok zemin rengi ve hücre yoğunluğu belirliyor: eski "komşuların en karanlığı" zemini tonları yok ediyordu. Karakter seçimi parlaklık rampası olarak kaldı.
+- Hypr görsellerinin kaynakları bu ortamdan indirilemedi (hypr.land ağ politikasıyla engelli), bu yüzden 320x180 verileri aynı kaldı; kazanç yeni çizimden geliyor. Kaynaklar bulunursa `--size 640x360` ile yeniden kodlanabilir.
+- Sık ızgarada her kareyi baştan çizmek pahalı olduğu için değişen hücre çizimi eklendi: başsız Chromium'da `hypr-kath` görev süresi saniyede ~924 ms'den (eski ızgara, tam çizim) ~609 ms'ye düştü, `misa-train` ~280 ms. Gerçek Mac'te GPU'lu canvas ile farklı olabilir.
+
+#### Testler
+- `npm test`: 52 test geçti.
+- Swift değişiklikleri (ayar senkronu, yazı boyu alt sınırı) yalnız macOS CI'da derlenir.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Görsel temalarda saat ve sistem paneli de sık ızgaraya çizildiği için daha küçük görünür (aynı gün sonraki kayıtta düzeltildi).
+- Ekran koruyucu ayarında `deathnote-misa` seçiliyse rastgele temaya düşer (ekran koruyucu Swift tarafında takma ad yok).
+
+### 2026-10-04 — Görsel temalarda saat ve panel boyutu
+
+#### Amaç
+Kullanıcı geri bildirimi: sık ızgaradan sonra görsel temalarda saat ve CPU paneli çok küçük kaldı. Görsel sık kalsın, arayüz diğer temalardaki boyutuna dönsün; masaüstünde ve ekran koruyucuda.
+
+#### Yapılanlar
+- `web/js/main.js`: Temanın `fontScale` değeri 1 değilse arayüz (saat, panel, tema adı, bildirim) normal yazı boyutlu ayrı bir ızgaraya çizilir ve sahnenin üstüne her karede yeniden çizilir. Kaybolan arayüz hücrelerinin altındaki sahne hücreleri yeniden çizilir. Yarı saydam zeminli hücreler önce temanın zeminiyle doldurulur (değişen hücrede eski yazının paneldeki gölgesi kalmasın).
+- `web/js/headless.js`: `resizeUI(cols, rows, aspect)`; kurulduysa arayüz oraya çizilir, hücreleri karenin sonuna eklenir.
+- `mac/Saver/AsciiSaverView.swift`, `AsciiEngine.swift`, `AsciiRenderer.swift`: Ekran koruyucu aynı şekilde normal boyutlu ikinci bir `AsciiRenderer` ile arayüz katmanını çizer; zeminsiz hücreler saydam kalır.
+- `tests/headless.test.mjs`: Arayüz katmanı testi. Görsel temaların önizlemeleri yeniden üretildi.
+
+#### Hedef durumu
+- [x] Sayfada görsel temalarda saat ve panel prosedürel temalarla aynı boyutta (başsız Chromium'da 1710x1112 ekran görüntüsüyle denendi).
+- [ ] Ekran koruyucuda arayüz katmanı: macOS CI'da derlenir ve `check-saver` ile çizilir; gerçek Mac'te `Doğrulanması gerekiyor`.
+
+#### Teknik kararlar
+- Arayüz boyutu prosedürel temalardakiyle aynı (`fontScale` 1) seçildi; PR #7 öncesinde görsel temalarda 0.72 idi, artık tüm temalarda tutarlı.
+- Arayüz katmanı her karede baştan çizilir (birkaç yüz hücre); sahnenin değişen hücreleri altına çizilse de üstte kalır, ayrı bir kapanma hesabı gerekmez.
+
+#### Testler
+- `npm test`: 53 test geçti.
+- Swift değişiklikleri yalnız macOS CI'da derlenir.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Yok.
+
+### 2026-10-04 — README GIF galerisi
+
+#### Amaç
+Kullanıcı isteği: saat/panel ölçeklemesi düzeldikten sonra README'yi güncelle, her temanın GIF'ini README'ye koy, varsayılan dala birleştir.
+
+#### Yapılanlar
+- `scripts/gifs.cjs`: Her temayı başsız Chromium'da 1440x900 çizer, Playwright saatiyle 24 kare yakalar, Pillow ile 720x450, 128 renkli GIF yapar.
+- `docs/gifs/*.gif`: 23 tema (toplam ~11 MB; ateş ve plazma gibi gürültülü temalar 1-1.6 MB).
+- `README.md`: Başa tema adı, kimliği ve GIF'iyle "Galeri"; Hypr açıklaması ve yeni tema adımları güncellendi.
+- `web/js/main.js`: Hücre dikdörtgenleri ekranın gerçek piksellerine yuvarlanır. Kesirli piksel oranında (sayfa yakınlaştırması, küçültülmüş önizleme) yarı kaplanan kenar pikselleri eski çizimi silmiyordu; kaybolan tema bildiriminin soluk izi kalıyordu. Tüm önizlemeler yeniden üretildi.
+
+#### Hedef durumu
+- [x] Her temanın GIF'i README galerisinde.
+
+#### Teknik kararlar
+- GIF'ler tam boyutta çizilip küçültülür: doğrudan küçük ölçekte çizmek yazıları okunmaz yapıyordu. 600x375 boyut yalnız %10-30 küçültüyordu, okunurluk için 720x450 seçildi.
+- Animasyon gerçek zamanda değil Playwright'ın sahte saatiyle ilerletilir; kareler eşit aralıklı ve tekrarlanabilir (saat 21:30 sabit).
+
+#### Testler
+- `npm test`: 53 test geçti.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Görünüş değişince GIF'ler kendiliğinden güncellenmez; `node scripts/gifs.cjs` yeniden çalıştırılmalı.
+
 ### 2026-10-04 — Claude Code paneli (duvar kağıdı + ekran koruyucu)
 
 #### Amaç
@@ -275,3 +389,28 @@ README'yi GitHub'da vitrin gibi duran bir hale getirmek; içerik korunur.
 
 #### Bilinen sorunlar ve sonraki adımlar
 - Görsellerde sol alttaki "tema:" bildirimi görünüyor (başsız modda sayfa zamanı yavaş ilerliyor); önemsiz.
+
+### 2026-10-05 — Claude Code panelini depoya geri getirme
+
+#### Amaç
+Kullanıcı Claude Code panelinin kaybolduğunu bildirdi. Panelin çalışması (yukarıdaki 2026-10-04 kayıtları: panel, kararma düzeltmesi, vitrin README) yalnızca kullanıcının Mac'indeki `~/codeprojects/riceutil-wallpaper/Wallpaper` klonunda commit edilmemiş duruyordu; `riceutil wallpaper update` uygulamayı GitHub'dan yeniden derleyince panel kurulu uygulamadan gitti. Kapsam: o çalışmayı değiştirmeden depoya almak ve #6-#9 ile birleştirmek.
+
+#### Yapılanlar
+- Mac'teki 14 dosya, yerel çalışma ağacına dokunmadan (geçici index + `commit-tree`) `claude/project-thread-og59y5` dalına gönderildi, ardından varsayılan dal bu dala birleştirildi.
+- `README.md`: Vitrin düzeni korundu; "Temalar" bölümündeki önizleme tabloları #9'un GIF galerisiyle değiştirildi, Misa Train açıklaması ve 23 tema sayısı eklendi, yeni tema adımlarına GIF adımı eklendi.
+- `AGENTS.md`: İki tarafın kuralları ve kayıtları birlikte tutuldu.
+- `docs/hero.jpg`, `docs/claude-panel.jpg`: Görsel temaların yeni sık ızgarası ve normal boyutlu arayüz katmanıyla Playwright'ta (`?theme=hypr-kath&claude=demo`) yeniden çekildi.
+
+#### Hedef durumu
+- [x] Panel kodu depoda ve varsayılan dalla birleşik; sayfada görsel temalarda arayüz katmanında normal boyutta çiziliyor (başsız Chromium'da denendi).
+- [ ] Kurulu uygulamada ve ekran koruyucuda gözle doğrulama: kullanıcı güncelleyince.
+
+#### Teknik kararlar
+- Claude paneli `ui.js` içinde çizildiği için #8'in ayrı arayüz ızgarasına kendiliğinden girer; ek kod gerekmedi.
+
+#### Testler
+- `npm test`: 55 test geçti.
+- Swift (uygulama ve ekran koruyucu) yalnız macOS CI'da derlenir.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Mac'teki `~/codeprojects/riceutil-wallpaper/Wallpaper` klonu hâlâ eski dalda ve commit edilmemiş değişikliklerle duruyor; birleştirmeden sonra o klonda çalışılacaksa değişiklikler atılıp güncel dal çekilmeli.

@@ -2,14 +2,16 @@
 // olmadan çalıştırır. Her kare tek bir metin olarak döner; hücre başına 5 UTF-16 birimi:
 // karakter, yazı rengi (2 birim) ve zemin rengi (2 birim). Renk birimleri: üst = 1 + 12 bit,
 // alt = 12 bit (r8 g8 b8); üst birim 0 ise renk yok. Yarı saydam renkler temanın zeminiyle
-// önceden karıştırılır. index.html'deki betiklerden sonra (main.js hariç) yüklenir.
+// önceden karıştırılır. resizeUI ile ayrı bir arayüz ızgarası kurulduysa (sık ızgaralı temalarda saat ve
+// panel normal boyutta kalsın diye) arayüz oraya çizilir ve hücreleri sahnenin hücrelerinden sonra gelir.
+// index.html'deki betiklerden sonra (main.js hariç) yüklenir.
 (function (G) {
   const AW = G.AW;
   const S = {
     cpu: 20, ram: 8, ramTotal: 16, battery: null, charging: false, onBattery: false,
     down: 0, up: 0, cpuHist: Array(40).fill(20), netHist: Array(40).fill(0), track: "", weather: "", live: true,
   };
-  const st = { grid: new AW.Grid(10, 10), theme: null, themeState: null, t: 0, showPanel: false, showClock: true, showThemeName: true };
+  const st = { grid: new AW.Grid(10, 10), ui: null, theme: null, themeState: null, t: 0, showPanel: false, showClock: true, showThemeName: true };
   let base = [0, 0, 0];
   let cache = new Map();
 
@@ -58,7 +60,7 @@
     themes: () => JSON.stringify(AW.themes.map((t) => ({ id: t.id, name: t.name }))),
     // Temayı seçer; ızgara boyutu için yazı ölçeği ve zemin rengi döner
     setTheme(id) {
-      st.theme = AW.themes.find((t) => t.id === id) || AW.themes[0];
+      st.theme = AW.findTheme(id) || AW.themes[0];
       base = parse(st.theme.bg || "#000000").slice(0, 3);
       cache = new Map();
       initTheme();
@@ -67,6 +69,10 @@
     resize(cols, rows, aspect) {
       st.grid.resize(cols, rows, aspect);
       if (st.theme) initTheme();
+    },
+    // Arayüz katmanının ızgarası; cols 0 ise arayüz sahne ızgarasına çizilir
+    resizeUI(cols, rows, aspect) {
+      st.ui = cols > 0 && rows > 0 ? new AW.Grid(cols, rows, aspect) : null;
     },
     setOptions(panel, clock, name) {
       st.showPanel = !!panel;
@@ -79,27 +85,34 @@
       S.netHist.push(S.down); S.netHist.shift();
     },
     frame(dt) {
-      const g = st.grid;
+      const g = st.grid, u = st.ui;
       st.t += dt;
       g.clear();
       st.theme.frame(g, st.t, dt, S, st.themeState);
-      AW.drawUI(g, new Date(), st.t, S, st.theme.ui, {
+      if (u) u.clear();
+      AW.drawUI(u || g, new Date(), st.t, S, st.theme.ui, {
         showPanel: st.showPanel, showClock: st.showClock, themeName: st.theme.name, showThemeName: st.showThemeName,
       });
-      const n = g.cols * g.rows, out = new Array(n * 5);
-      for (let k = 0, o = 0; k < n; k++, o += 5) {
-        let c = g.ch[k].charCodeAt(0) || 32;
-        if (c >= 0xd800 && c <= 0xdfff) c = 63; // vekil çiftler tek birime sığmaz
-        const f = g.fg[k] && c !== 32 ? code(g.fg[k]) : 0, b = code(g.bg[k]);
-        out[o] = c;
-        out[o + 1] = f ? 1 + ((f - 1) >> 12) : 0;
-        out[o + 2] = f ? (f - 1) & 4095 : 0;
-        out[o + 3] = b ? 1 + ((b - 1) >> 12) : 0;
-        out[o + 4] = b ? (b - 1) & 4095 : 0;
-      }
+      const n = g.cols * g.rows, out = new Array((n + (u ? u.cols * u.rows : 0)) * 5);
+      encode(g, out, 0);
+      if (u) encode(u, out, n * 5);
       let s = "";
       for (let i = 0; i < out.length; i += 8192) s += String.fromCharCode.apply(null, out.slice(i, i + 8192));
       return s;
     },
   };
+
+  function encode(g, out, start) {
+    const n = g.cols * g.rows;
+    for (let k = 0, o = start; k < n; k++, o += 5) {
+      let c = g.ch[k].charCodeAt(0) || 32;
+      if (c >= 0xd800 && c <= 0xdfff) c = 63; // vekil çiftler tek birime sığmaz
+      const f = g.fg[k] && c !== 32 ? code(g.fg[k]) : 0, b = code(g.bg[k]);
+      out[o] = c;
+      out[o + 1] = f ? 1 + ((f - 1) >> 12) : 0;
+      out[o + 2] = f ? (f - 1) & 4095 : 0;
+      out[o + 3] = b ? 1 + ((b - 1) >> 12) : 0;
+      out[o + 4] = b ? (b - 1) & 4095 : 0;
+    }
+  }
 })(globalThis);

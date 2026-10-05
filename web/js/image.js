@@ -46,10 +46,14 @@
 
   const inHue = (h, [a, b]) => (a <= b ? h >= a && h <= b : h >= a || h <= b);
 
+  // Renk kanallarını 4'ün katlarına yuvarlar: sık ızgarada farklı renk sayısı (ve ekran koruyucunun
+  // renk başına yaptığı çizim çağrısı) azalır, gözle fark edilmez
+  const q4 = (v) => (Math.min(255, Math.max(0, v)) >> 2) << 2;
+
   // Seviyeye (0..1) göre parlaklığı ayarlanmış yazı rengi: ton korunur, karanlık hücreler de seçilir
   function tint(c, v) {
     const mx = Math.max(c[0], c[1], c[2], 1), k = (55 + 200 * Math.sqrt(AW.clamp(v, 0, 1))) / mx;
-    return `rgb(${Math.min(255, c[0] * k) | 0},${Math.min(255, c[1] * k) | 0},${Math.min(255, c[2] * k) | 0})`;
+    return `rgb(${q4(c[0] * k)},${q4(c[1] * k)},${q4(c[2] * k)})`;
   }
 
   // Hücre ızgarasını görsele "cover" mantığıyla oturtur; nx, ny görselde 0..1 konum
@@ -78,10 +82,14 @@
     if (!img) return st;
     const map = (st.map = makeMap(g, img));
     const L = new Float32Array(n), gx = new Float32Array(n), gy = new Float32Array(n);
+    // Görsel pikselleri arasında doğrusal ara değer: sık ızgarada da yumuşak geçişler
     const pick = (u, v) => {
-      const px = AW.clamp(Math.floor((u + map.ox) / map.s), 0, img.w - 1);
-      const py = AW.clamp(Math.floor((v + map.oy) / map.s), 0, img.h - 1);
-      return img.pal[img.px[py * img.w + px]] || [0, 0, 0];
+      const fx = AW.clamp((u + map.ox) / map.s - 0.5, 0, img.w - 1), fy = AW.clamp((v + map.oy) / map.s - 0.5, 0, img.h - 1);
+      const x0 = Math.floor(fx), y0 = Math.floor(fy), x1 = Math.min(x0 + 1, img.w - 1), y1 = Math.min(y0 + 1, img.h - 1);
+      const tx = fx - x0, ty = fy - y0, P = img.pal, px = img.px;
+      const a = P[px[y0 * img.w + x0]], b = P[px[y0 * img.w + x1]], c = P[px[y1 * img.w + x0]], d = P[px[y1 * img.w + x1]];
+      const w0 = (1 - tx) * (1 - ty), w1 = tx * (1 - ty), w2 = (1 - tx) * ty, w3 = tx * ty;
+      return [a[0] * w0 + b[0] * w1 + c[0] * w2 + d[0] * w3, a[1] * w0 + b[1] * w1 + c[1] * w2 + d[1] * w3, a[2] * w0 + b[2] * w1 + c[2] * w2 + d[2] * w3];
     };
     const lum = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 
@@ -104,27 +112,29 @@
     // Parlaklığı görselin kendi aralığına yay (karanlık duvar kağıtları da dolu görünsün)
     const sorted = Array.from(L).sort((a, b) => a - b);
     const lo = sorted[Math.floor(n * 0.02)] || 0, hi = Math.max(lo + 0.05, sorted[Math.floor(n * 0.997)] || 1);
-    const gamma = def.gamma || 0.85, floor = def.floor ?? 0.07, bgDim = def.bgDim ?? 0.5;
+    const gamma = def.gamma || 0.85, floor = def.floor ?? 0.07, bgDim = def.bgDim ?? 0.6;
     const bgBase = [1, 3, 5].map((i) => parseInt((def.bg || "#000000").substr(i, 2), 16));
 
     for (let k = 0; k < n; k++) {
       const v = Math.pow(AW.clamp((L[k] - lo) / (hi - lo), 0, 1), gamma);
       st.v[k] = v;
       const c = st.col[k];
-      // Zemin rengi görselin kendisi (karartılmış), ama komşuların en karanlığından: yıldız gibi küçük
-      // parlak noktalar kutu gibi görünmesin. Temanın düz zeminine yakınsa hiç boyanmaz.
+      // Zemin rengi hücrenin kendi rengi (karartılmış): tonlar ve yüzler zeminden okunur, karakter dokuyu
+      // verir. Yıldız gibi çevresinden çok parlak noktalarda komşuların en karanlığı kullanılır ki kutu gibi
+      // görünmesinler. Temanın düz zeminine yakınsa hiç boyanmaz.
       const x = k % g.cols, y = (k / g.cols) | 0;
       let dk = k;
       for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
         const kk = (y + j) * g.cols + x + i;
         if (x + i >= 0 && x + i < g.cols && y + j >= 0 && y + j < g.rows && L[kk] < L[dk]) dk = kk;
       }
-      const d = st.col[dk], bgc = [d[0] * bgDim, d[1] * bgDim, d[2] * bgDim];
+      const d = L[k] - L[dk] < 0.2 ? st.col[k] : st.col[dk], bgc = [d[0] * bgDim, d[1] * bgDim, d[2] * bgDim];
       const dist = Math.abs(bgc[0] - bgBase[0]) + Math.abs(bgc[1] - bgBase[1]) + Math.abs(bgc[2] - bgBase[2]);
       const darker = bgc[0] <= bgBase[0] + 3 && bgc[1] <= bgBase[1] + 3 && bgc[2] <= bgBase[2] + 3;
-      st.bg[k] = dist > 10 && !darker ? AW.rgb(bgc) : null;
+      st.bg[k] = dist > 10 && !darker ? `rgb(${q4(bgc[0])},${q4(bgc[1])},${q4(bgc[2])})` : null;
       const mag = Math.hypot(gx[k], gy[k]) / (hi - lo);
-      if (mag > 0.32 && v > 0.12) {
+      // Yalnız belirgin çizgiler kenar karakteri olur; yumuşak geçişler (yüzler) dokuyla kalır
+      if (mag > 0.5 && v > 0.12) {
         const ax = Math.abs(gx[k]), ay = Math.abs(gy[k]);
         st.edge[k] = ax > ay * 2.2 ? "|" : ay > ax * 2.2 ? (gy[k] > 0 ? "_" : "-") : gx[k] * gy[k] > 0 ? "/" : "\\";
       }
@@ -174,7 +184,8 @@
       name: def.name,
       bg: def.bg,
       ui: def.ui,
-      fontScale: def.fontScale ?? 0.72,
+      // Sık ızgara: ayrıntı (ve yüzler) okunsun diye küçük yazı
+      fontScale: def.fontScale ?? 0.4,
       init(g, S) {
         const st = build(g, def);
         if (def.setup) def.setup(g, st, S);

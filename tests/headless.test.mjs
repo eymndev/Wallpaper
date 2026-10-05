@@ -45,3 +45,24 @@ for (const { id } of themes) {
     assert.ok(visible > cols * rows * 0.05, `${id}: yalnız ${visible} hücre görünür`);
   });
 }
+
+test("arayüz katmanı: saat ve panel ayrı ızgaraya çiziliyor", () => {
+  AWH.setTheme("misa-train");
+  const cols = 300, rows = 94, ucols = 120, urows = 38;
+  AWH.resize(cols, rows, 0.5);
+  AWH.resizeUI(ucols, urows, 0.5);
+  AWH.setOptions(true, true, true);
+  const s = AWH.frame(0.05);
+  assert.equal(s.length, (cols * rows + ucols * urows) * 5);
+  // Arayüz katmanında saatin büyük rakamları var, boş hücreler saydam (renksiz)
+  let blocks = 0, empty = 0;
+  for (let k = 0; k < ucols * urows; k++) {
+    const o = (cols * rows + k) * 5, c = s.charCodeAt(o);
+    if (c === 0x2588) blocks++;
+    if (c === 32 && !s.charCodeAt(o + 1) && !s.charCodeAt(o + 3)) empty++;
+  }
+  assert.ok(blocks > 20, `yalnız ${blocks} saat bloğu`);
+  assert.ok(empty > ucols * urows * 0.5);
+  AWH.resizeUI(0, 0, 0.5);
+  assert.equal(AWH.frame(0.05).length, cols * rows * 5);
+});

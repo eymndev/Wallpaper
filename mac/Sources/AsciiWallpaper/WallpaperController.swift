@@ -182,6 +182,10 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
 
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let body = message.body as? [String: Any], let type = body["type"] as? String else { return }
+        if type == "theme", let id = body["id"] as? String, id != themeID, themes.contains(where: { $0.id == id }) {
+            // Sayfa eski bir kimliği yenisine çevirdiyse (adı değişen tema) kayıtlı ayarı da güncelle
+            themeID = id
+        }
         if type == "ready" {
             if let list = body["themes"] as? [[String: Any]] {
                 themes = list.compactMap { item in
