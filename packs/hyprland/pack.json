@@ -1,0 +1,18 @@
+{
+  "id": "hyprland",
+  "name": "Hyprland",
+  "order": 1,
+  "description": "Hyprland duvar kağıdı yarışmasının dokuz kazananı",
+  "scripts": [
+    "js/hypr/honkadaloonga.data.js",
+    "js/hypr/kath.data.js",
+    "js/hypr/end4.data.js",
+    "js/hypr/alba4k.data.js",
+    "js/hypr/corndog.data.js",
+    "js/hypr/meptl.data.js",
+    "js/hypr/sollee.data.js",
+    "js/hypr/srev.data.js",
+    "js/hypr/vdawg.data.js",
+    "js/hypr.js"
+  ]
+}

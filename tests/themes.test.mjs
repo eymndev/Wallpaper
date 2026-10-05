@@ -2,21 +2,10 @@
 // boyunca hatasız çizebilmeli ve ızgarayı geçerli değerlerle doldurmalı.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import vm from "node:vm";
-import path from "node:path";
+import { loadAll } from "../scripts/packs.mjs";
 
-const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "web");
-const html = readFileSync(path.join(root, "index.html"), "utf8");
-const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]).filter((s) => !s.endsWith("main.js"));
-
-function load() {
-  const ctx = vm.createContext({ Math, Date, Array, Object, Uint8Array, Uint16Array, Float32Array, String, Number, console });
-  ctx.globalThis = ctx;
-  for (const s of scripts) vm.runInContext(readFileSync(path.join(root, s), "utf8"), ctx, { filename: s });
-  return ctx.AW;
-}
+// Klasik temalar ve depodaki tüm paketler
+const load = () => loadAll({ globals: { console } }).AW;
 
 const sample = () => ({
   cpu: 40, ram: 9, ramTotal: 16, battery: 70, charging: false, onBattery: true, down: 5, up: 1,
@@ -31,7 +20,17 @@ test("en az 10 tema var ve kimlikleri benzersiz", () => {
   assert.equal(new Set(ids).size, ids.length);
   for (const t of AW.themes) {
     assert.ok(t.name && typeof t.frame === "function", `${t.id} eksik alan`);
+    assert.ok(AW.packs.some((p) => p.id === t.pack), `${t.id} paketi bilinmiyor: ${t.pack}`);
   }
+});
+
+test("Klasik temalar paketsiz de var, görsel temalar paketlerde", () => {
+  const core = loadAll({ only: [] }).AW;
+  assert.ok(core.themes.length >= 10);
+  assert.ok(core.themes.every((t) => t.pack === "klasik"));
+  assert.ok(!core.findTheme("hypr-kath") && !core.findTheme("light-yagami"));
+  const anime = loadAll({ only: ["anime"] }).AW;
+  assert.equal(anime.themes.filter((t) => t.pack === "anime").map((t) => t.id).join(" "), "misa-train light-yagami");
 });
 
 for (const theme of AW.themes) {

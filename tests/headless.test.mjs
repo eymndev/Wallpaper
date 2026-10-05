@@ -2,25 +2,16 @@
 // metni üretmeli ve kareler boş olmamalı.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import vm from "node:vm";
-import path from "node:path";
+import { loadAll } from "../scripts/packs.mjs";
 
-const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "web");
-const html = readFileSync(path.join(root, "index.html"), "utf8");
-const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]).filter((s) => !s.endsWith("main.js"));
-
-// JavaScriptCore'da olduğu gibi: console, tarayıcı nesneleri yok
-const ctx = vm.createContext({});
-vm.runInContext("globalThis.globalThis = globalThis;", ctx);
-for (const s of [...scripts, "js/headless.js"]) vm.runInContext(readFileSync(path.join(root, s), "utf8"), ctx, { filename: s });
-const AWH = ctx.AWH;
+// JavaScriptCore'da olduğu gibi: console, tarayıcı nesneleri yok. Paketler ekran koruyucudaki gibi
+// (AsciiEngine) index.html'deki betiklerden sonra, tarayıcısız sürücüden önce çalışır.
+const AWH = loadAll({ extra: ["js/headless.js"] }).AWH;
 const themes = JSON.parse(AWH.themes());
 
 test("tema listesi index.html ile aynı", () => {
   assert.ok(themes.length >= 20);
-  assert.ok(themes.every((t) => t.id && t.name));
+  assert.ok(themes.every((t) => t.id && t.name && t.pack));
 });
 
 for (const { id } of themes) {

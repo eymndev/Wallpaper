@@ -1,6 +1,6 @@
 // Hyprland duvar kağıdı yarışmasının dokuz kazananı, ASCII olarak.
 // Görseller: https://hypr.land/news/contestWinners (her temanın adında sanatçısı yazıyor).
-// Görsel verisi js/themes/hypr/*.data.js içinde; buradaki ayarlar efektleri belirler (bkz. js/image.js).
+// Görsel verisi hypr/*.data.js içinde; buradaki ayarlar efektleri belirler (bkz. web/js/image.js).
 (function (G) {
   const AW = G.AW;
 

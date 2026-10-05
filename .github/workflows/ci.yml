@@ -14,7 +14,7 @@ jobs:
         with:
           node-version: 22
       - name: Sözdizimi kontrolü
-        run: for f in web/js/*.js web/js/themes/*.js; do node --check "$f"; done
+        run: for f in web/js/*.js web/js/themes/*.js packs/index.js packs/*/js/*.js; do node --check "$f"; done
       - name: Tema testleri
         run: node --test tests/*.test.mjs
 
@@ -25,6 +25,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Derle
         run: ./scripts/build-app.sh
+      - name: Tema paketlerini kur
+        run: |
+          ./scripts/pack.sh add hyprland anime
+          ./scripts/pack.sh list
       - name: Dışarıdan komutla tema değiştir (riceutil'in kullandığı bildirim)
         run: |
           defaults write dev.eymn.ascii-wallpaper theme lake
@@ -53,17 +57,32 @@ jobs:
           test "$(defaults read dev.eymn.ascii-wallpaper theme)" = hypr-end4
           test "$(defaults read dev.eymn.ascii-wallpaper showThemeName)" = 0
           test "$(defaults read dev.eymn.ascii-wallpaper rotateMinutes)" = 30
+          send theme light-yagami
+          sleep 3
+          screencapture -x build/app-light-yagami.png || true
+          test "$(defaults read dev.eymn.ascii-wallpaper theme)" = light-yagami
+          # Paket kaldırılınca uygulama sayfaları yeniden açar, kayıtlı tema ilk temaya düşer
+          ./scripts/pack.sh remove anime
+          sleep 6
+          test "$(defaults read dev.eymn.ascii-wallpaper theme)" = lake
+          ./scripts/pack.sh add anime
+          sleep 6
+          send theme misa-train
+          sleep 2
+          test "$(defaults read dev.eymn.ascii-wallpaper theme)" = misa-train
           pkill -x AsciiWallpaper
       - name: Kurulum betiği
         run: |
           AW_INSTALL_DIR="$RUNNER_TEMP/Applications" ./scripts/install.sh --no-saver --no-open
           test -f "$RUNNER_TEMP/Applications/ASCII Wallpaper.app/Contents/Resources/web/themes.tsv"
+          test -f "$RUNNER_TEMP/Applications/ASCII Wallpaper.app/Contents/Resources/web/packs.tsv"
+          test -f "$HOME/Library/Application Support/ASCII Wallpaper/packs/anime/js/light.js"
       - name: Ekran koruyucuyu derle
         run: ./scripts/build-saver.sh
       - name: Ekran koruyucuyu yükleyip çizdir
         run: |
           swiftc -o build/check-saver scripts/check-saver.swift
-          build/check-saver "build/ASCII Wallpaper.saver" lake matrix hypr-kath hypr-sollee hypr-corndog hypr-alba4k misa-train
+          build/check-saver "build/ASCII Wallpaper.saver" lake matrix hypr-kath hypr-sollee hypr-corndog hypr-alba4k misa-train light-yagami
       - uses: actions/upload-artifact@v4
         if: always()
         with:

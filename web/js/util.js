@@ -3,9 +3,11 @@
 (function (G) {
   const AW = (G.AW = G.AW || {});
   AW.themes = AW.themes || [];
+  // Kaydolan temanın paketi: Klasik temalar sayfanın içinde, ötekiler ayrı indirilen paketlerden (js/packs.js)
+  AW.pack = AW.pack || "klasik";
 
   AW.register = (theme) => {
-    if (!AW.themes.some((t) => t.id === theme.id)) AW.themes.push(theme);
+    if (!AW.themes.some((t) => t.id === theme.id)) AW.themes.push(Object.assign(theme, { pack: AW.pack }));
   };
 
   // Adı değişen temaların eski kimlikleri: kayıtlı ayarlar ve eski komutlar yeni temayı açsın

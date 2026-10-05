@@ -28,12 +28,27 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         if controller.themes.isEmpty {
             themeMenu.addItem(NSMenuItem(title: "Yükleniyor…", action: nil, keyEquivalent: ""))
         }
+        // Temalar paketlerine göre gruplanır: Klasik, sonra kurulu paketler (Hyprland, Anime ...)
+        var lastPack: String?
         for theme in controller.themes {
+            if theme.pack != lastPack, controller.packNames.count > 1 {
+                if lastPack != nil { themeMenu.addItem(.separator()) }
+                let header = NSMenuItem(title: controller.packNames[theme.pack] ?? theme.pack, action: nil, keyEquivalent: "")
+                header.isEnabled = false
+                themeMenu.addItem(header)
+            }
+            lastPack = theme.pack
             let entry = NSMenuItem(title: theme.name, action: #selector(selectTheme(_:)), keyEquivalent: "")
             entry.target = self
             entry.representedObject = theme.id
             entry.state = theme.id == controller.themeID ? .on : .off
             themeMenu.addItem(entry)
+        }
+        if controller.packNames.count <= 1, !controller.themes.isEmpty {
+            themeMenu.addItem(.separator())
+            let hint = NSMenuItem(title: "Daha çok tema: riceutil wallpaper packs", action: nil, keyEquivalent: "")
+            hint.isEnabled = false
+            themeMenu.addItem(hint)
         }
         themeItem.submenu = themeMenu
         menu.addItem(themeItem)

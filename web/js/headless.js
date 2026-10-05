@@ -57,7 +57,7 @@
   }
 
   G.AWH = {
-    themes: () => JSON.stringify(AW.themes.map((t) => ({ id: t.id, name: t.name }))),
+    themes: () => JSON.stringify(AW.themes.map((t) => ({ id: t.id, name: t.name, pack: t.pack }))),
     // Temayı seçer; ızgara boyutu için yazı ölçeği ve zemin rengi döner
     setTheme(id) {
       st.theme = AW.findTheme(id) || AW.themes[0];

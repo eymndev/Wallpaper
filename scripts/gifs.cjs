@@ -14,7 +14,12 @@ function loadPlaywright() {
 
 const root = path.join(__dirname, "..", "web");
 const outDir = path.join(__dirname, "..", "docs", "gifs");
-const all = fs.readFileSync(path.join(root, "themes.tsv"), "utf8").trim().split("\n").map((l) => l.split("\t")[0]);
+// Klasik temalar web/themes.tsv'de, paketlerinkiler packs/<paket>/themes.tsv'de
+const packsDir = path.join(__dirname, "..", "packs");
+const dirs = [root, ...fs.readdirSync(packsDir).map((d) => path.join(packsDir, d)).filter((d) => fs.existsSync(path.join(d, "themes.tsv")))];
+const home = {};
+for (const dir of dirs) for (const l of fs.readFileSync(path.join(dir, "themes.tsv"), "utf8").trim().split("\n")) home[l.split("\t")[0]] = dir;
+const all = Object.keys(home);
 const wanted = process.argv.slice(2);
 const ids = wanted.length ? all.filter((id) => wanted.includes(id)) : all;
 const FRAMES = 24, STEP = 125; // 3 saniye, saniyede 8 kare

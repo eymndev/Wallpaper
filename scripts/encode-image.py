@@ -2,10 +2,10 @@
 """Bir duvar kağıdı görselini, görsel temaların kullandığı küçük veri dosyasına çevirir.
 
 Görsel 320x180'e (ya da --size ile verilen boyuta) küçültülür, 96 renge indirilir ve palet + piksel indeksleri base64 olarak
-web/js/themes/<dizin>/<id>.data.js dosyasına yazılır (varsayılan dizin: hypr). Temanın davranışı
-(efektler, metinler) ayrı tutulur, ör. web/js/themes/hypr.js.
+<dizin>/<id>.data.js dosyasına yazılır (dizin depo köküne göre; varsayılan: packs/hyprland/js/hypr). Temanın
+davranışı (efektler, metinler) ayrı tutulur, ör. packs/hyprland/js/hypr.js.
 
-Kullanım: python3 scripts/encode-image.py <görsel> <tema-kimliği> [--dir hypr] [--size 640x360] [--erase x0,y0,x1,y1 ...]
+Kullanım: python3 scripts/encode-image.py <görsel> <tema-kimliği> [--dir packs/anime/js/light] [--size 640x360] [--erase x0,y0,x1,y1 ...]
 --erase: canlı çizilecek bölgeleri (0..1 oranlarıyla) arka plan rengiyle siler.
 Gerekenler: pip install pillow
 """
@@ -20,7 +20,7 @@ W, H, COLORS = 320, 180, 96
 ap = argparse.ArgumentParser()
 ap.add_argument("image")
 ap.add_argument("id")
-ap.add_argument("--dir", default="hypr", help="web/js/themes altındaki çıktı dizini")
+ap.add_argument("--dir", default="packs/hyprland/js/hypr", help="çıktı dizini (depo köküne göre)")
 ap.add_argument("--size", default=f"{W}x{H}", help="16:9 hedef boyut, ör. 640x360 (yüzlü görsellerde daha çok ayrıntı)")
 ap.add_argument("--erase", action="append", default=[], help="x0,y0,x1,y1 (0..1)")
 ap.add_argument("--erase-ring", action="append", default=[], help="cx,cy,r0,r1: halka (merkez 0..1, yarıçap yüksekliğe oranla)")
@@ -68,7 +68,7 @@ pal = q.getpalette()[: COLORS * 3]
 palette = "".join(f"{v:02x}" for v in pal)
 pixels = base64.b64encode(q.tobytes()).decode()
 
-out = pathlib.Path(__file__).resolve().parent.parent / "web" / "js" / "themes" / args.dir / f"{args.id}.data.js"
+out = pathlib.Path(__file__).resolve().parent.parent / args.dir / f"{args.id}.data.js"
 out.parent.mkdir(parents=True, exist_ok=True)
 out.write_text(
     "// Otomatik üretildi: scripts/encode-image.py — elle düzenleme\n"

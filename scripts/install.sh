@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Uygulamayı derleyip ~/Applications içine kurar, ekran koruyucuyu kurar ve uygulamayı başlatır.
+# Uygulamayı derleyip ~/Applications içine kurar, kurulu tema paketlerini günceller (scripts/pack.sh sync),
+# ekran koruyucuyu kurar ve uygulamayı başlatır.
 # Güncellemek için de aynı komut kullanılır (riceutil wallpaper update bunu çağırır).
 #   --no-saver  ekran koruyucuyu kurma
 #   --no-open   kurduktan sonra başlatma
@@ -33,6 +34,10 @@ mkdir -p "$DEST_DIR"
 rm -rf "$DEST"
 cp -R "$ROOT/build/ASCII Wallpaper.app" "$DEST"
 echo "Kuruldu: $DEST"
+
+# Tema paketleri: kurulu olanlar depodaki sürüme güncellenir. Paketlerden önceki bir sürümden geliniyorsa
+# depoda ne varsa kurulur, yani eski kurulumda olan temalar kaybolmaz.
+"$ROOT/scripts/pack.sh" sync
 
 if [[ $SAVER == 1 ]]; then
   "$ROOT/scripts/build-saver.sh" --install

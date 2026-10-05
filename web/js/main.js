@@ -224,7 +224,8 @@
     setClock(on) { state.showClock = !!on; },
     setThemeName(on) { state.showThemeName = !!on; },
     setPaused(on) { state.paused = !!on; },
-    listThemes: () => AW.themes.map((t) => ({ id: t.id, name: t.name })),
+    listThemes: () => AW.themes.map((t) => ({ id: t.id, name: t.name, pack: t.pack })),
+    listPacks: () => AW.packs,
     currentTheme: () => state.theme.id,
   };
 
@@ -243,5 +244,5 @@
   frame(0.05);
   requestAnimationFrame(loop);
   if (document.fonts) document.fonts.ready.then(resize);
-  if (native) native.postMessage({ type: "ready", themes: G.wallpaper.listThemes(), theme: state.theme.id });
+  if (native) native.postMessage({ type: "ready", themes: G.wallpaper.listThemes(), packs: AW.packs, theme: state.theme.id });
 })(globalThis);

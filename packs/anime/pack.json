@@ -1,0 +1,12 @@
+{
+  "id": "anime",
+  "name": "Anime",
+  "order": 2,
+  "description": "Death Note: Misa Train ve Light Yagami",
+  "scripts": [
+    "js/deathnote/misa.data.js",
+    "js/deathnote.js",
+    "js/light/light.data.js",
+    "js/light.js"
+  ]
+}

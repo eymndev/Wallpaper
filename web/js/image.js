@@ -1,6 +1,6 @@
 // Görsel temalar: küçültülmüş bir duvar kağıdını karakter ızgarasına çevirir, üstüne hafif
 // efektler (parıltı, nabız, ışık süpürmesi, dalga, yükselen zerreler, akan çizgiler) ekler.
-// Görsel verisi js/themes/hypr/*.data.js dosyalarında; scripts/encode-image.py ile üretilir.
+// Görsel verisi tema paketlerinin *.data.js dosyalarında (ör. packs/hyprland/js/hypr); scripts/encode-image.py ile üretilir.
 (function (G) {
   const AW = G.AW;
   AW.imageData = AW.imageData || {};
