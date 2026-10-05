@@ -10,7 +10,7 @@ Bir de Claude Code çalışırken köşede yürüyen Clawd.
 ![macOS 13+](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)
 ![Swift](https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-vanilla-F7DF1E?logo=javascript&logoColor=black)
-![Temalar](https://img.shields.io/badge/tema-24-8a5cf6)
+![Temalar](https://img.shields.io/badge/tema-25-8a5cf6)
 ![Ekran koruyucu](https://img.shields.io/badge/ekran%20koruyucu-var-2ea44f)
 
 <p>
@@ -27,7 +27,7 @@ Bir de Claude Code çalışırken köşede yürüyen Clawd.
 
 ## Neler var
 
-- 🎨 **24 tema, üç paket**: 13 özgün sahne her kurulumda gelir (Klasik). Hyprland duvar kağıdı yarışmasının 9 kazanan görselinden üretilmiş ASCII sürümler (Hyprland paketi) ve Death Note'tan Misa Train ile Light Yagami (Anime paketi) [ayrı indirilir](#tema-paketleri).
+- 🎨 **25 tema, üç paket**: 13 özgün sahne her kurulumda gelir (Klasik). Hyprland duvar kağıdı yarışmasının 9 kazanan görselinden üretilmiş ASCII sürümler (Hyprland paketi) Death Note'tan Misa Train ile Light Yagami ve One Piece'ten Thousand Sunny (Anime paketi) [ayrı indirilir](#tema-paketleri).
 - 📈 **Canlı sistem verisi**: CPU, RAM, pil, ağ, çalan şarkı (Spotify / Müzik) ve hava durumu. Temaların çoğu bu veriye tepki verir.
 - 🦀 **Claude Code paneli**: Claude Code çalışırken ne yaptığı, son düşüncesi, süre ve token. Yanında yürüyen Clawd.
 - 🌙 **Ekran koruyucu**: Aynı temalar `.saver` olarak, web görünümü olmadan JavaScriptCore + Core Text ile çizilir.
@@ -103,10 +103,11 @@ Her tema saat, sistem paneli (örnek veri) ve köşedeki tema adıyla birlikte, 
 
 ### Anime paketi
 
-`riceutil wallpaper pack add anime` · Death Note'tan iki sahne.
+`riceutil wallpaper pack add anime` · Death Note'tan iki, One Piece'ten bir sahne.
 
 <table>
   <tr><td align="center" width="50%"><img src="docs/gifs/misa-train.gif" alt="Misa Train" width="360"><br><b>Misa Train</b> · <code>misa-train</code></td><td align="center" width="50%"><img src="docs/gifs/light-yagami.gif" alt="Light Yagami" width="360"><br><b>Light Yagami</b> · <code>light-yagami</code></td></tr>
+  <tr><td align="center" width="50%"><img src="docs/gifs/thousand-sunny.gif" alt="Thousand Sunny" width="360"><br><b>Thousand Sunny</b> · <code>thousand-sunny</code></td></tr>
 </table>
 
 #### Misa Train
@@ -116,6 +117,10 @@ Her tema saat, sistem paneli (örnek veri) ve köşedeki tema adıyla birlikte, 
 #### Light Yagami
 
 `light-yagami`: Light, rüzgarda kravatını gevşetirken. Kare görsel 16:9'a yerleştirildi; solda görseldeki gibi koyu, dalgalı rüzgar şeritleri sağa doğru akar, arada bir gözlerinde kırmızı bir parıltı yanıp söner. CPU yükseldikçe rüzgar hızlanır.
+
+#### Thousand Sunny
+
+`thousand-sunny`: Hasır Şapka Korsanları, Thousand Sunny'nin güvertesinde açık denizde. Mürettebat bir grup görselinden, gemi (aslan başı, direkler, korsan bayrağı) onun üstüne çizildi. Gemi dalgalarla inip kalkar; deniz ve bulutlar geriye akar, gövdede köpük, aslan başının önünde serpinti, kıçta dümen suyu, gökyüzünde martılar. CPU yükseldikçe gemi hızlanır.
 
 ## Tema paketleri
 

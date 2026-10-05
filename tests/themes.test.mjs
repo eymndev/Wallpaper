@@ -30,7 +30,7 @@ test("Klasik temalar paketsiz de var, görsel temalar paketlerde", () => {
   assert.ok(core.themes.every((t) => t.pack === "klasik"));
   assert.ok(!core.findTheme("hypr-kath") && !core.findTheme("light-yagami"));
   const anime = loadAll({ only: ["anime"] }).AW;
-  assert.equal(anime.themes.filter((t) => t.pack === "anime").map((t) => t.id).join(" "), "misa-train light-yagami");
+  assert.equal(anime.themes.filter((t) => t.pack === "anime").map((t) => t.id).join(" "), "misa-train light-yagami thousand-sunny");
 });
 
 for (const theme of AW.themes) {

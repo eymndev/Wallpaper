@@ -298,4 +298,5 @@
 
   // Çizimde kullanılmak üzere dışa açılanlar
   AW.imageTint = tint;
+  AW.decode64 = decode64;
 })(globalThis);

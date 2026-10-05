@@ -4,7 +4,7 @@ Bu depoda çalışacak geliştiriciler ve kodlama agent'ları (Codex, Claude vb.
 
 ## Proje özeti
 
-macOS için ASCII karakterlerle çizilen, hareketli ve canlı sistem istatistikleri (CPU, RAM, pil, ağ, çalan şarkı, hava durumu) ve çalışan Claude Code oturumunu gösteren duvar kağıdı ve aynı temalarla çalışan bir ekran koruyucu. 24 tema üç pakette: Klasik (13 özgün tema, uygulamanın içinde), Hyprland (9 yarışma kazananı görselinden `hypr-*`) ve Anime (Death Note'tan `misa-train`, `light-yagami`). Hyprland ve Anime ayrı indirilir (bkz. "Tema paketleri"). [riceutil](https://github.com/eymndev/riceutil-macos) bu uygulamayı kurar ve yönetir.
+macOS için ASCII karakterlerle çizilen, hareketli ve canlı sistem istatistikleri (CPU, RAM, pil, ağ, çalan şarkı, hava durumu) ve çalışan Claude Code oturumunu gösteren duvar kağıdı ve aynı temalarla çalışan bir ekran koruyucu. 25 tema üç pakette: Klasik (13 özgün tema, uygulamanın içinde), Hyprland (9 yarışma kazananı görselinden `hypr-*`) ve Anime (Death Note'tan `misa-train`, `light-yagami`; One Piece'ten `thousand-sunny`). Hyprland ve Anime ayrı indirilir (bkz. "Tema paketleri"). [riceutil](https://github.com/eymndev/riceutil-macos) bu uygulamayı kurar ve yönetir.
 
 Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işareti var.
 
@@ -34,7 +34,7 @@ Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işa
 - `node scripts/themes-manifest.mjs`: `web/themes.tsv`, `packs/*/themes.tsv`, `web/packs.tsv` ve `packs/index.js`'yi yeniden üretir. Tema/paket ekleyince/silince çalıştır; bir test bunu denetler.
 - `node scripts/previews.cjs [kimlik ...]`: Önizlemeleri temanın yerine (`web/previews` ya da `packs/<paket>/previews`) üretir (Playwright gerekir). Yeni temanın önizlemesi yoksa test başarısız olur.
 - `node scripts/gifs.cjs [kimlik ...]`: README galerisindeki `docs/gifs/*.gif` dosyalarını üretir (Playwright + Pillow; sayfanın saatini Playwright ile ilerletir, 3 sn, 8 kare/sn, 720x450).
-- `python3 scripts/encode-image.py gorsel.png kimlik [--dir packs/anime/js/light] [--size 640x360]`: Görselden tema verisi üretir (Pillow gerekir); `--dir` depo köküne göre çıktı dizini (varsayılan `packs/hyprland/js/hypr`), `--size` hedef boyut (varsayılan 320x180).
+- `python3 scripts/encode-image.py gorsel.png kimlik [--dir packs/anime/js/light] [--size 640x360] [--mask maske.png]`: Görselden tema verisi üretir (Pillow gerekir); `--dir` depo köküne göre çıktı dizini (varsayılan `packs/hyprland/js/hypr`), `--size` hedef boyut (varsayılan 320x180), `--mask` aynı boyutta siyah-beyaz maskeyi bit dizisi olarak `mask` alanına yazar (tema `AW.decode64` ile okur; ör. `thousand-sunny` gemiyi gökyüzü/denizden ayırır).
 
 ## CI
 
@@ -454,3 +454,31 @@ Kullanıcı isteği: gönderdiği Light Yagami görselinden yeni bir tema; temal
 
 #### Bilinen sorunlar ve sonraki adımlar
 - Paket eklenince/kaldırılınca ekran koruyucu ancak bir sonraki açılışında yeni listeyi görür (`killall legacyScreenSaver` ile eski örnek kapatılır).
+
+### 2026-10-05 — One Piece · Thousand Sunny teması
+
+#### Amaç
+Kullanıcı isteği: gönderdiği Hasır Şapka Korsanları grup görselindeki karakterler bir gemide olsun ve gemi hareket etsin. Anime paketine yeni bir tema; diğer temalar kapsam dışı.
+
+#### Yapılanlar
+- `packs/anime/js/sunny.js`, `packs/anime/js/sunny/sunny.data.js`: `thousand-sunny` ("Thousand Sunny"). Sahne Python/Pillow ile kuruldu: grup görselinin gökyüzü (üst kenara bağlı mavi/beyaz bölgeler) ayıklandı, mürettebat sol ve üst kenardan taşacak şekilde yerleştirildi, önüne Thousand Sunny'nin gövdesi, küpeştesi, lumbozları ve ayçiçeği yeleli aslan başı, arkasına korsan bayraklı yelken, sağ kenarını örten ön direk ve Hasır Şapka bayrağı çizildi; 640x360 kodlandı. Canlı: gemi (görsel + maske) dalgalarla tam satır adımlarıyla iner kalkar, ön dalgalar gövdeyi keser; deniz derinliğe göre perspektifli akar, bulutlar ve martılar geçer, gövdede köpük, aslan başında serpinti, kıçta dümen suyu.
+- `scripts/encode-image.py`: `--mask` seçeneği (görselle aynı kırpma ve boyutla, piksel başına bir bit).
+- `web/js/image.js`: `AW.decode64` dışa açıldı (maskeyi okumak için).
+- `packs/anime/pack.json`, `themes.tsv`, `previews/thousand-sunny.jpg`, `packs/index.js`, `web/packs.tsv`, `docs/gifs/thousand-sunny.gif`, `README.md`, `tests/themes.test.mjs`, `.github/workflows/ci.yml` (ekran koruyucu çizim denetimi): Tema kaydı, liste, önizleme, GIF ve belge.
+
+#### Hedef durumu
+- [x] Tema sayfada ve tarayıcısız sürücüde çiziliyor (Node testleri, başsız Chromium'da 16:9 ve 16:10).
+- [ ] Ekran koruyucuda çizim: macOS CI'da `check-saver` ile; gerçek Mac'te `Doğrulanması gerekiyor`.
+
+#### Teknik kararlar
+- Gökyüzü ve deniz görselden değil canlı çizilir; maske (1 = gemi ve mürettebat) hangi hücrenin görselden geleceğini söyler. Gemi kaydırılırken maske de kaydırılır, açılan yerlere gökyüzü/deniz çizilir.
+- Sallanma tam satır adımlarıyla: sayfa yalnız değişen hücreleri çizdiği için gemi yalnız adım anlarında baştan çizilir. Eğilme (baş-kıç) eklenmedi: satırları sütuna göre farklı kaydırmak yüzleri bozuyordu.
+- Deniz rengi satır başına önceden hesaplanır, her deniz hücresi iki karede, bulutlar üç karede bir hesaplanır: 300x94 ızgarada tarayıcısız sürücüde kare başına ~15 ms (Misa Train ~9 ms).
+- Mürettebatın sağ kenarı ön direğin arkasında bırakıldı, sol ve üst kenarı ekran dışında: grup görselinin düz kesik kenarları görünmesin. Kompozisyon betiği ve kaynak görsel depoya eklenmedi (önceki görsel temalarla aynı).
+
+#### Testler
+- `npm test`: 63 test geçti.
+- Swift değişmedi; ekran koruyucu çizimi macOS CI'da doğrulanır.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Ön direkteki Hasır Şapka bayrağı sistem paneli açıkken panelin altında kalır.
