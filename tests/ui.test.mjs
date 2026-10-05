@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import path from "node:path";
-import { manifest, manifestPath } from "../scripts/themes-manifest.mjs";
+import { manifests } from "../scripts/themes-manifest.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "web");
 const ctx = vm.createContext({});
@@ -20,8 +20,8 @@ const S = {
 
 const rowText = (g, y) => g.ch.slice(y * g.cols, (y + 1) * g.cols).join("");
 
-test("web/themes.tsv güncel (node scripts/themes-manifest.mjs)", () => {
-  assert.equal(readFileSync(manifestPath, "utf8"), manifest());
+test("tema ve paket listeleri güncel (node scripts/themes-manifest.mjs)", () => {
+  for (const [file, text] of Object.entries(manifests())) assert.equal(readFileSync(file, "utf8"), text, file);
 });
 
 test("tema adı sağ alt köşede yazıyor", () => {

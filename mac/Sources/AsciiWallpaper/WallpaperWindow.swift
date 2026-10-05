@@ -5,9 +5,12 @@ import WebKit
 final class WallpaperWindow: NSWindow, WKNavigationDelegate {
     let webView: WKWebView
 
-    init(screen: NSScreen, webDirectory: URL, messageHandler: WKScriptMessageHandler) {
+    /// packScript: kurulu tema paketlerinin betikleri (ThemePacks.pageScript), sayfanın kendi betiklerinden önce çalışır
+    init(screen: NSScreen, webDirectory: URL, packScript: String, messageHandler: WKScriptMessageHandler) {
         let config = WKWebViewConfiguration()
         config.userContentController.add(messageHandler, name: "aw")
+        config.userContentController.addUserScript(
+            WKUserScript(source: packScript, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         config.suppressesIncrementalRendering = true
         webView = WKWebView(frame: CGRect(origin: .zero, size: screen.frame.size), configuration: config)
         webView.setValue(false, forKey: "drawsBackground") // açılışta beyaz parlamayı önler

@@ -4,18 +4,20 @@ Bu depoda çalışacak geliştiriciler ve kodlama agent'ları (Codex, Claude vb.
 
 ## Proje özeti
 
-macOS için ASCII karakterlerle çizilen, hareketli ve canlı sistem istatistikleri (CPU, RAM, pil, ağ, çalan şarkı, hava durumu) ve çalışan Claude Code oturumunu gösteren duvar kağıdı ve aynı temalarla çalışan bir ekran koruyucu. 23 tema var (13 özgün, 9 Hyprland yarışma kazananı görselinden üretilen `hypr-*` ve Death Note'un son sahnesinden `misa-train`). [riceutil](https://github.com/eymndev/riceutil-macos) bu uygulamayı kurar ve yönetir.
+macOS için ASCII karakterlerle çizilen, hareketli ve canlı sistem istatistikleri (CPU, RAM, pil, ağ, çalan şarkı, hava durumu) ve çalışan Claude Code oturumunu gösteren duvar kağıdı ve aynı temalarla çalışan bir ekran koruyucu. 24 tema üç pakette: Klasik (13 özgün tema, uygulamanın içinde), Hyprland (9 yarışma kazananı görselinden `hypr-*`) ve Anime (Death Note'tan `misa-train`, `light-yagami`). Hyprland ve Anime ayrı indirilir (bkz. "Tema paketleri"). [riceutil](https://github.com/eymndev/riceutil-macos) bu uygulamayı kurar ve yönetir.
 
 Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işareti var.
 
 ## Dizin yapısı
 
-- `web/`: Görünüşün tamamı. `index.html`, `js/grid.js` (karakter ızgarası), `js/main.js`, `js/ui.js` (panel, saat, tema adı, Claude Code paneli ve Clawd), `js/image.js` (görselden tema), `js/headless.js` (tarayıcısız çizim, ekran koruyucu için).
-- `web/js/themes/`: Her tema bir dosya, `AW.register({...})` ile kaydolur. `hypr.js` + `hypr/*.data.js` ve `deathnote.js` + `deathnote/misa.data.js` görselden üretilmiş temalar.
-- `web/themes.tsv`: Tema listesi (`kimlik<TAB>ad`); riceutil temaları buradan okur.
-- `web/previews/<kimlik>.jpg`: Her temanın önizlemesi; riceutil GUI'sinin tema kartları kullanır.
+- `web/`: Görünüşün tamamı. `index.html`, `js/grid.js` (karakter ızgarası), `js/main.js`, `js/ui.js` (panel, saat, tema adı, Claude Code paneli ve Clawd), `js/image.js` (görselden tema), `js/packs.js` (tema paketlerini yükler), `js/headless.js` (tarayıcısız çizim, ekran koruyucu için).
+- `web/js/themes/`: Klasik temalar, her tema bir dosya, `AW.register({...})` ile kaydolur.
+- `packs/<paket>/`: Ayrı indirilen tema paketleri (`hyprland`, `anime`). `pack.json` (kimlik, ad, sıra, açıklama, yüklenme sırasıyla betikler), `js/` (temalar ve görselden üretilmiş `*.data.js`), `previews/`, `themes.tsv`. `packs/index.js` tarayıcıda depodan açılınca tüm paketleri yükler (üretilir).
+- `web/themes.tsv`: Klasik temaların listesi (`kimlik<TAB>ad`); `packs/<paket>/themes.tsv` paketlerinki; `web/packs.tsv` paket kataloğu (`kimlik<TAB>ad<TAB>dahili<TAB>tema sayısı<TAB>açıklama`). riceutil bunları okur.
+- `web/previews/<kimlik>.jpg`, `packs/<paket>/previews/<kimlik>.jpg`: Temaların önizlemesi; riceutil GUI'sinin tema kartları kullanır.
 - `mac/Sources/AsciiWallpaper/`: Swift uygulama (SwiftPM). Her ekranda masaüstü seviyesinde bir `WKWebView` penceresi açar, istatistikleri saniyede bir `wallpaper.update(...)` ile sayfaya gönderir, menü çubuğu menüsü burada.
 - `mac/Sources/AsciiWallpaper/ClaudeMonitor.swift`: `~/.claude` altından çalışan Claude Code oturumunu okur; uygulama ve ekran koruyucu ortak kullanır (`build-saver.sh` bu dosyayı da derler).
+- `mac/Sources/AsciiWallpaper/ThemePacks.swift`: Kurulu tema paketlerini okur; uygulama ve ekran koruyucu ortak kullanır (`build-saver.sh` bunu da derler).
 - `mac/Saver/`: Ekran koruyucu (`.saver`). Temaları JavaScriptCore + `web/js/headless.js` ile çalıştırır, Core Text ile çizer.
 - `docs/`: README görselleri (`hero.jpg`, `claude-panel.jpg`; Claude paneli `?claude=demo` örnek verisiyle çekildi, gerçek oturum içeriği README'ye girmesin).
 - `scripts/`: Derleme, kurulum ve üretim betikleri (aşağıda).
@@ -24,29 +26,31 @@ Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işa
 
 ## Komutlar
 
-- `npm test` (= `node --test tests/*.test.mjs`): Tema, tarayıcısız çizim, UI, `themes.tsv` ve önizleme testleri. Linux'ta çalışır.
+- `npm test` (= `node --test tests/*.test.mjs`): Tema, tarayıcısız çizim, UI, tema/paket listeleri, önizleme ve `pack.sh` (seyrek klon dahil) testleri. Linux'ta çalışır.
 - `./scripts/build-app.sh`: `build/ASCII Wallpaper.app` (yalnızca macOS).
 - `./scripts/build-saver.sh [--install]`: `build/ASCII Wallpaper.saver`, `--install` ile `~/Library/Screen Savers` içine (yalnızca macOS).
-- `./scripts/install.sh [--no-saver] [--no-open]`: Derler, `~/Applications`'a (ya da `AW_INSTALL_DIR`) kurar, ekran koruyucuyu kurar, başlatır. `riceutil wallpaper install|update` bunu çağırır.
-- `node scripts/themes-manifest.mjs`: `web/themes.tsv`'yi yeniden üretir. Tema ekleyince/silince çalıştır; bir test bunu denetler.
-- `node scripts/previews.cjs [kimlik ...]`: `web/previews/*.jpg` üretir (Playwright gerekir). Yeni temanın önizlemesi yoksa test başarısız olur.
+- `./scripts/install.sh [--no-saver] [--no-open]`: Derler, `~/Applications`'a (ya da `AW_INSTALL_DIR`) kurar, `pack.sh sync` ile paketleri günceller, ekran koruyucuyu kurar, başlatır. `riceutil wallpaper install|update` bunu çağırır.
+- `./scripts/pack.sh list [--tsv] | add <paket>... | remove <paket>... | sync`: Tema paketlerini kurar/kaldırır (`AW_PACKS_DIR` ile klasör değişir). `riceutil wallpaper packs|pack` bunu çağırır.
+- `node scripts/themes-manifest.mjs`: `web/themes.tsv`, `packs/*/themes.tsv`, `web/packs.tsv` ve `packs/index.js`'yi yeniden üretir. Tema/paket ekleyince/silince çalıştır; bir test bunu denetler.
+- `node scripts/previews.cjs [kimlik ...]`: Önizlemeleri temanın yerine (`web/previews` ya da `packs/<paket>/previews`) üretir (Playwright gerekir). Yeni temanın önizlemesi yoksa test başarısız olur.
 - `node scripts/gifs.cjs [kimlik ...]`: README galerisindeki `docs/gifs/*.gif` dosyalarını üretir (Playwright + Pillow; sayfanın saatini Playwright ile ilerletir, 3 sn, 8 kare/sn, 720x450).
-- `python3 scripts/encode-image.py gorsel.png kimlik [--dir hypr] [--size 640x360]`: Görselden tema verisi üretir (Pillow gerekir); `--dir` `web/js/themes` altındaki çıktı dizini, `--size` hedef boyut (varsayılan 320x180).
+- `python3 scripts/encode-image.py gorsel.png kimlik [--dir packs/anime/js/light] [--size 640x360]`: Görselden tema verisi üretir (Pillow gerekir); `--dir` depo köküne göre çıktı dizini (varsayılan `packs/hyprland/js/hypr`), `--size` hedef boyut (varsayılan 320x180).
 
 ## CI
 
-`.github/workflows/ci.yml`: Ubuntu'da sözdizimi kontrolü + Node testleri; `macos-15`'te uygulamayı derler, dış komut bildirimini dener, kurulum betiğini dener, ekran koruyucuyu derleyip `scripts/check-saver.swift` ile birkaç temayı ekran dışında çizdirir (boş görüntüde başarısız olur) ve paketleri artifact olarak yükler.
+`.github/workflows/ci.yml`: Ubuntu'da sözdizimi kontrolü + Node testleri; `macos-15`'te uygulamayı derler, paketleri kurar, dış komut bildirimini ve paket kaldırınca sayfaların yeniden açılmasını dener, kurulum betiğini dener, ekran koruyucuyu derleyip `scripts/check-saver.swift` ile birkaç temayı ekran dışında çizdirir (boş görüntüde başarısız olur) ve paketleri artifact olarak yükler.
 
 Swift kodu Linux/bulut ortamında derlenemez; Swift değişiklikleri yalnızca macOS CI'da doğrulanır.
 
 ## Kalıcı kurallar ve mimari kararlar
 
 - **Ekran koruyucuda web görünümü kullanma.** macOS ekran koruyucuları kısıtlı bir süreçte çalıştırır ve `WKWebView` orada hiçbir şey çizmez (siyah ekran). Ekran koruyucu temaları süreç içinde JavaScriptCore ile çalıştırır. Masaüstü uygulaması `WKWebView` kullanmaya devam eder, orada çalışıyor.
-- **Dış komutlar:** Uygulama `dev.eymn.ascii-wallpaper.command` adlı dağıtık bildirimi dinler (userInfo değerleri string: `theme`, `next`, `panel`/`clock`/`name` `1|0`, `rotate` dakika). Kabuktan `osascript -l JavaScript` ile gönderilir; bildirimin `object`'i string olmalı (`"riceutil"`), JXA `null`'u NSNull yapıp çökertir. Bu arayüzü değiştirirsen riceutil'i de güncelle.
+- **Dış komutlar:** Uygulama `dev.eymn.ascii-wallpaper.command` adlı dağıtık bildirimi dinler (userInfo değerleri string: `theme`, `next`, `panel`/`clock`/`name` `1|0`, `rotate` dakika, `packs` `reload`). Kabuktan `osascript -l JavaScript` ile gönderilir; bildirimin `object`'i string olmalı (`"riceutil"`), JXA `null`'u NSNull yapıp çökertir. Bu arayüzü değiştirirsen riceutil'i de güncelle.
 - **Ayarlar** `dev.eymn.ascii-wallpaper` UserDefaults alanındadır: `theme`, `showPanel`, `showClock`, `showThemeName`, `showClaude`, `rotateMinutes`, `city`, `latitude`, `longitude`. Ekran koruyucu kendi `dev.eymn.ascii-wallpaper.saver` alanını kullanır (`theme`, `showPanel`, `showClock`, `showThemeName`, `showClaude`).
 - **Tema kimliğini değiştirirken** eskisini `web/js/util.js` içindeki `AW.aliases`'a ekle: kayıtlı ayarlar ve eski komutlar yeni temayı açar, uygulama kayıtlı ayarı yenisine çevirir.
 - **Görsel temalar** varsayılan olarak sık ızgarayla (`fontScale` 0.4) çizilir; zemin hücrenin kendi rengidir, karakter dokuyu verir. Saat, panel, tema adı ve bildirim bu temalarda normal boyutlu ayrı bir arayüz ızgarasına çizilir (sayfada `main.js` `ui`, ekran koruyucuda `AWH.resizeUI` ve ikinci `AsciiRenderer`); böylece arayüz her temada aynı boyuttadır. Masaüstü sayfası sahnede yalnız değişen hücreleri yeniden çizer (`main.js` `render`), arayüz katmanını her karede üstüne çizer; yeni bir efekt her karede tüm hücreleri değiştirirse bu kazanç kaybolur.
-- **Yeni tema eklerken:** `web/js/themes/` + `web/index.html` script listesi (`main.js`'ten önce), sonra `node scripts/themes-manifest.mjs`, `node scripts/previews.cjs <kimlik>` ve `node scripts/gifs.cjs <kimlik>` (README galerisine hücre ekle), ardından `npm test`. Görünüşü değiştiren bir değişiklikten sonra önizlemeleri ve GIF'leri yeniden üret.
+- **Tema paketleri:** Klasik temalar uygulama paketinin içinde (`web/`), diğerleri `packs/<paket>/` altında ve kullanıcıda `~/Library/Application Support/ASCII Wallpaper/packs/<paket>/` içine kopyalanır (`scripts/pack.sh`). Uygulama paketlerin betiklerini `WKUserScript` ile sayfa açılmadan `AW_PACKS` olarak verir, `web/js/packs.js` bunları `AW.beginPack`/`AW.endPack` arasında çalıştırır (temalar `pack` alanını taşır); `packs reload` bildiriminde pencereler yeniden kurulur. Ekran koruyucu paketleri JavaScriptCore'da kendisi çalıştırır, `killall legacyScreenSaver` ile yeni listeyi okur. riceutil Wallpaper'ı seyrek + `--filter=blob:none` klonlar; `pack.sh add` seyrek klonda `git sparse-checkout add packs/<paket>` ile yalnız o paketi indirir. `pack.sh sync`, paket klasörü hiç yoksa (ilk kurulum ya da paketlerden önceki sürümden güncelleme) depoda bulunan tüm paketleri kurar: eski kurulumlar temalarını kaybetmez, riceutil'in seyrek klonundaki yeni kurulum yalnız Klasik'le başlar.
+- **Yeni tema eklerken:** Klasik için `web/js/themes/` + `web/index.html` script listesi (`main.js`'ten önce), paket için `packs/<paket>/js/` + `pack.json` `scripts` listesi; sonra `node scripts/themes-manifest.mjs`, `node scripts/previews.cjs <kimlik>` ve `node scripts/gifs.cjs <kimlik>` (README galerisine hücre ekle), ardından `npm test`. Görünüşü değiştiren bir değişiklikten sonra önizlemeleri ve GIF'leri yeniden üret.
 - **Claude Code verisi:** `update(...)` verisindeki `claude` alanı (yoksa `null`) panelin tek kaynağıdır; panel yalnızca bu alan doluyken çizilir. Veri `~/.claude/sessions/*.json` + oturum kaydı JSONL'den okunur; bunlar Claude Code'un belgelenmemiş iç dosyalarıdır, biçim değişirse `ClaudeMonitor.swift` güncellenmeli. Ekran koruyucu süreci korumalı alanda ama `/` altını salt okunur okuyabiliyor (legacyScreenSaver yetkisi); orada `NSHomeDirectory()` kapsayıcıyı gösterdiği için ev dizini `getpwuid` ile bulunur. Token toplamı önbellekten okunan tokenları saymaz (her çağrıda tekrar sayılırdı).
 - Hava durumu anahtarsız Open-Meteo kullanır; depoya API anahtarı veya sır ekleme.
 - **Kullanıcıya verilen terminal komutlarında yer tutucu yol kullanma** (`/klasorunun/yolu` gibi); kullanıcı komutları olduğu gibi yapıştırır. Gerçek yollar ver.
@@ -414,3 +418,39 @@ Kullanıcı Claude Code panelinin kaybolduğunu bildirdi. Panelin çalışması 
 
 #### Bilinen sorunlar ve sonraki adımlar
 - Mac'teki `~/codeprojects/riceutil-wallpaper/Wallpaper` klonu hâlâ eski dalda ve commit edilmemiş değişikliklerle duruyor; birleştirmeden sonra o klonda çalışılacaksa değişiklikler atılıp güncel dal çekilmeli.
+
+### 2026-10-05 — Light Yagami teması ve tema paketleri
+
+#### Amaç
+Kullanıcı isteği: gönderdiği Light Yagami görselinden yeni bir tema; temalar paketlere ayrılsın (Anime, Hyprland ...) ve ayrı ayrı indirilebilsin. Paketler riceutil'den (komut + GUI) indirilip kaldırılır, duvar kağıdında ve ekran koruyucuda çalışır; her şeyi kurmuş kullanıcı bir şey kaybetmez.
+
+#### Yapılanlar
+- `packs/anime/js/light.js`, `packs/anime/js/light/light.data.js`: `light-yagami` ("Light Yagami"). Kare görsel 16:9'a yerleştirildi (Light sağa dayalı, alt kısmı kırpık, sol kenarı karanlığa karışıyor; solda üretilmiş koyu rüzgar dokusu; kontrast ve renk 1.12), 640x360 kodlandı. Canlı: arka planda sağa akan rüzgar şeritleri, 14 saniyede bir gözlerde kırmızı parıltı.
+- `packs/hyprland/`, `packs/anime/`: Hypr temaları ve Misa Train `web/js/themes`'ten taşındı; her pakette `pack.json`, `themes.tsv`, `previews/`.
+- `web/js/packs.js`, `web/js/util.js`: `AW.beginPack`/`AW.endPack`, temalar `pack` alanını taşır; uygulamada `AW_PACKS`, tarayıcıda `packs/index.js`.
+- `scripts/pack.sh`: `list|add|remove|sync`; `install.sh` `sync` çağırır.
+- `mac/Sources/AsciiWallpaper/ThemePacks.swift`, `WallpaperWindow.swift`, `WallpaperController.swift`, `StatusMenu.swift`: Paket betikleri `WKUserScript` ile verilir, `packs reload` bildirimi, menüde temalar paket başlıklarıyla.
+- `mac/Saver/AsciiEngine.swift`, `scripts/build-saver.sh`: Ekran koruyucu kurulu paketleri yükler.
+- `scripts/packs.mjs`, `themes-manifest.mjs`, `previews.cjs`, `gifs.cjs`, `encode-image.py`, `tests/*`: Paket yapısına uyarlandı; `tests/packs.test.mjs` yeni (seyrek klon dahil).
+- `.github/workflows/ci.yml`: Paketler kurulur; paket kaldırınca sayfaların yeniden açılıp temanın ilk temaya düşmesi denenir; ekran koruyucuda `light-yagami` çizilir.
+- `README.md`: Galeri paketlere göre, "Tema paketleri" bölümü, Light Yagami. `docs/gifs/light-yagami.gif`.
+
+#### Hedef durumu
+- [x] Light Yagami teması sayfada ve tarayıcısız sürücüde çiziliyor (Node testleri, başsız Chromium).
+- [x] Paketler: `pack.sh` testleri (seyrek klonda isteğe bağlı indirme dahil) geçiyor.
+- [ ] Uygulama ve ekran koruyucuda paket yükleme: macOS CI'da denenecek; gerçek Mac'te `Doğrulanması gerekiyor`.
+
+#### Teknik kararlar
+- İndirme yolu olarak git seyrek klonu seçildi: depo özel olduğu için sürüm eki (release asset) indirmek token isterdi; riceutil'in mevcut git erişimi aynen kullanılır ve paket dosyaları gerçekten ancak istenince iner.
+- Paketler uygulama paketinin içine değil `~/Library/Application Support` altına kurulur: eklemek/kaldırmak yeniden derleme ya da yeniden imzalama gerektirmez, uygulama sayfaları yeniden açar.
+- Uygulamada paket betikleri dosyadan değil `WKUserScript` ile verilir: `loadFileURL` okuma izni uygulama paketinin `web/` klasörüyle sınırlı.
+- Eski kurulumların temaları kaybolmasın diye `sync` paket klasörü hiç yoksa depoda bulunan her paketi kurar; riceutil'in seyrek klonunda bu "hiçbiri" demektir.
+- Light görselinde rüzgar yalnız silüet çokgeninin dışındaki karanlık hücrelerde, dört seviyeye yuvarlanarak çizilir; böylece sayfa yalnız şeritlerin kenarındaki hücreleri yeniden çizer.
+
+#### Testler
+- `npm test`: 61 test geçti.
+- `shellcheck scripts/*.sh`: Temiz.
+- Swift değişiklikleri yalnız macOS CI'da derlenir.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Paket eklenince/kaldırılınca ekran koruyucu ancak bir sonraki açılışında yeni listeyi görür (`killall legacyScreenSaver` ile eski örnek kapatılır).

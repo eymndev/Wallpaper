@@ -1,5 +1,5 @@
 // Death Note, son bölüm: Misa, Light'ın öldüğünden habersiz, gün batımında boş bir trende tek başına.
-// Vagonun kendisi görselden (js/themes/deathnote/misa.data.js, bkz. js/image.js). Kaynak kare kodlanmadan önce
+// Vagonun kendisi görselden (deathnote/misa.data.js, bkz. web/js/image.js). Kaynak kare kodlanmadan önce
 // Misa'nın çevresi aydınlatıldı (parlaklık 1.7, kontrast 1.3, yumuşak maske), sonra tüm kareye renk 1.2 ve
 // kontrast 1.2 uygulandı; yoksa koyu saçı ve elbisesi ASCII'de koltuğa karışıyor. Pencerelerdeki gökyüzü
 // canlı çiziliyor: bulutlar akıyor, direkler ve teller geçiyor, gün batımının rengi yavaşça değişiyor.

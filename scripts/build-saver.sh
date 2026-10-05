@@ -10,7 +10,7 @@ TMP="$ROOT/build/saver-obj"
 rm -rf "$SAVER" "$TMP"
 mkdir -p "$SAVER/Contents/MacOS" "$SAVER/Contents/Resources" "$TMP"
 
-SOURCES=("$ROOT"/mac/Saver/*.swift "$ROOT/mac/Sources/AsciiWallpaper/StatsMonitor.swift" "$ROOT/mac/Sources/AsciiWallpaper/ClaudeMonitor.swift")
+SOURCES=("$ROOT"/mac/Saver/*.swift "$ROOT/mac/Sources/AsciiWallpaper/StatsMonitor.swift" "$ROOT/mac/Sources/AsciiWallpaper/ClaudeMonitor.swift" "$ROOT/mac/Sources/AsciiWallpaper/ThemePacks.swift")
 for ARCH in arm64 x86_64; do
   swiftc -O -module-name AsciiSaver -emit-library \
     -target "$ARCH-apple-macos13.0" \

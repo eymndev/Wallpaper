@@ -30,15 +30,23 @@ final class AsciiEngine {
 
         // index.html'deki sırayla (main.js hariç) betikler, sonra tarayıcısız sürücü
         let pattern = try! NSRegularExpression(pattern: #"<script src="([^"]+)""#)
-        var scripts = pattern.matches(in: html, range: NSRange(html.startIndex..., in: html)).compactMap { match in
+        let scripts = pattern.matches(in: html, range: NSRange(html.startIndex..., in: html)).compactMap { match in
             Range(match.range(at: 1), in: html).map { String(html[$0]) }
         }.filter { !$0.hasSuffix("main.js") }
-        scripts.append("js/headless.js")
-        for path in scripts {
-            let url = webDirectory.appendingPathComponent(path)
-            guard let source = try? String(contentsOf: url, encoding: .utf8) else { continue }
+        func run(_ url: URL) {
+            guard let source = try? String(contentsOf: url, encoding: .utf8) else { return }
             context.evaluateScript(source, withSourceURL: url)
         }
+        scripts.forEach { run(webDirectory.appendingPathComponent($0)) }
+        // Kurulu tema paketleri (bkz. ThemePacks, web/js/packs.js)
+        for pack in ThemePacks.installed() {
+            let meta = (try? JSONSerialization.data(withJSONObject: ["id": pack.id, "name": pack.name]))
+                .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+            context.evaluateScript("AW.beginPack(\(meta))")
+            pack.scripts.forEach(run)
+            context.evaluateScript("AW.endPack()")
+        }
+        run(webDirectory.appendingPathComponent("js/headless.js"))
 
         guard let api = context.objectForKeyedSubscript("AWH"), !api.isUndefined else { return nil }
         self.api = api

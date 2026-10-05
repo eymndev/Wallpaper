@@ -8,9 +8,12 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
     struct Theme {
         let id: String
         let name: String
+        let pack: String
     }
 
     private(set) var themes: [Theme] = []
+    /// Paket kimliği → adı (Klasik ve kurulu paketler), menüde başlık olarak
+    private(set) var packNames: [String: String] = [:]
     private var windows: [WallpaperWindow] = []
     private let webDirectory: URL
     private let stats = StatsMonitor()
@@ -91,8 +94,9 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
 
     private func rebuildWindows() {
         windows.forEach { $0.close() }
+        let packScript = ThemePacks.pageScript()
         windows = NSScreen.screens.map { screen in
-            let window = WallpaperWindow(screen: screen, webDirectory: webDirectory, messageHandler: WeakHandler(self))
+            let window = WallpaperWindow(screen: screen, webDirectory: webDirectory, packScript: packScript, messageHandler: WeakHandler(self))
             window.orderBack(nil)
             return window
         }
@@ -118,11 +122,13 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
     // MARK: Dışarıdan komutlar
 
     /// riceutil gibi araçların gönderdiği bildirim. userInfo anahtarları (hepsi isteğe bağlı, değerler metin):
-    /// theme = tema kimliği, next = "1", panel / clock / name = "1" | "0", rotate = dakika.
+    /// theme = tema kimliği, next = "1", panel / clock / name = "1" | "0", rotate = dakika,
+    /// packs = "reload" (tema paketi eklendi ya da kaldırıldı; sayfalar yeniden açılır).
     static let commandNotification = Notification.Name("dev.eymn.ascii-wallpaper.command")
 
     @objc private func remoteCommand(_ note: Notification) {
         guard let info = note.userInfo else { return }
+        if info["packs"] != nil { reloadPacks() }
         func value(_ key: String) -> String? {
             guard let v = info[key] else { return nil }
             return (v as? String) ?? (v as? NSNumber)?.stringValue
@@ -137,6 +143,13 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
         if let on = flag("clock") { showClock = on }
         if let on = flag("name") { showThemeName = on }
         if let minutes = value("rotate").flatMap({ Int($0) }) { rotateMinutes = max(0, minutes) }
+    }
+
+    /// Paketler değişince sayfalar yeni betiklerle baştan açılır; tema listesi yeni sayfanın "ready" mesajıyla gelir.
+    /// Kayıtlı tema kaldırılan bir paketteyse sayfa ilk temaya düşer ve ayar ona çevrilir.
+    func reloadPacks() {
+        themes = []
+        rebuildWindows()
     }
 
     @objc func pause() { broadcast("window.wallpaper && wallpaper.setPaused(true)") }
@@ -190,8 +203,13 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
             if let list = body["themes"] as? [[String: Any]] {
                 themes = list.compactMap { item in
                     guard let id = item["id"] as? String, let name = item["name"] as? String else { return nil }
-                    return Theme(id: id, name: name)
+                    return Theme(id: id, name: name, pack: item["pack"] as? String ?? "klasik")
                 }
+            }
+            if let list = body["packs"] as? [[String: Any]] {
+                packNames = Dictionary(list.compactMap { item in
+                    (item["id"] as? String).map { ($0, item["name"] as? String ?? $0) }
+                }, uniquingKeysWith: { a, _ in a })
             }
             // Yeni açılan sayfayı kayıtlı ayarlara getir
             message.webView?.evaluateJavaScript("""
