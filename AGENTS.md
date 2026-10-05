@@ -4,18 +4,20 @@ Bu depoda çalışacak geliştiriciler ve kodlama agent'ları (Codex, Claude vb.
 
 ## Proje özeti
 
-macOS için ASCII karakterlerle çizilen, hareketli ve canlı sistem istatistikleri (CPU, RAM, pil, ağ, çalan şarkı, hava durumu) gösteren duvar kağıdı ve aynı temalarla çalışan bir ekran koruyucu. 23 tema var (13 özgün, 9 Hyprland yarışma kazananı görselinden üretilen `hypr-*` ve Death Note'un son sahnesinden `misa-train`). [riceutil](https://github.com/eymndev/riceutil-macos) bu uygulamayı kurar ve yönetir.
+macOS için ASCII karakterlerle çizilen, hareketli ve canlı sistem istatistikleri (CPU, RAM, pil, ağ, çalan şarkı, hava durumu) ve çalışan Claude Code oturumunu gösteren duvar kağıdı ve aynı temalarla çalışan bir ekran koruyucu. 23 tema var (13 özgün, 9 Hyprland yarışma kazananı görselinden üretilen `hypr-*` ve Death Note'un son sahnesinden `misa-train`). [riceutil](https://github.com/eymndev/riceutil-macos) bu uygulamayı kurar ve yönetir.
 
 Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işareti var.
 
 ## Dizin yapısı
 
-- `web/`: Görünüşün tamamı. `index.html`, `js/grid.js` (karakter ızgarası), `js/main.js`, `js/ui.js` (panel, saat, tema adı), `js/image.js` (görselden tema), `js/headless.js` (tarayıcısız çizim, ekran koruyucu için).
+- `web/`: Görünüşün tamamı. `index.html`, `js/grid.js` (karakter ızgarası), `js/main.js`, `js/ui.js` (panel, saat, tema adı, Claude Code paneli ve Clawd), `js/image.js` (görselden tema), `js/headless.js` (tarayıcısız çizim, ekran koruyucu için).
 - `web/js/themes/`: Her tema bir dosya, `AW.register({...})` ile kaydolur. `hypr.js` + `hypr/*.data.js` ve `deathnote.js` + `deathnote/misa.data.js` görselden üretilmiş temalar.
 - `web/themes.tsv`: Tema listesi (`kimlik<TAB>ad`); riceutil temaları buradan okur.
 - `web/previews/<kimlik>.jpg`: Her temanın önizlemesi; riceutil GUI'sinin tema kartları kullanır.
 - `mac/Sources/AsciiWallpaper/`: Swift uygulama (SwiftPM). Her ekranda masaüstü seviyesinde bir `WKWebView` penceresi açar, istatistikleri saniyede bir `wallpaper.update(...)` ile sayfaya gönderir, menü çubuğu menüsü burada.
+- `mac/Sources/AsciiWallpaper/ClaudeMonitor.swift`: `~/.claude` altından çalışan Claude Code oturumunu okur; uygulama ve ekran koruyucu ortak kullanır (`build-saver.sh` bu dosyayı da derler).
 - `mac/Saver/`: Ekran koruyucu (`.saver`). Temaları JavaScriptCore + `web/js/headless.js` ile çalıştırır, Core Text ile çizer.
+- `docs/`: README görselleri (`hero.jpg`, `claude-panel.jpg`; Claude paneli `?claude=demo` örnek verisiyle çekildi, gerçek oturum içeriği README'ye girmesin).
 - `scripts/`: Derleme, kurulum ve üretim betikleri (aşağıda).
 - `docs/gifs/`: README galerisindeki tema GIF'leri.
 - `tests/`: Node testleri (`node --test`).
@@ -41,10 +43,11 @@ Swift kodu Linux/bulut ortamında derlenemez; Swift değişiklikleri yalnızca m
 
 - **Ekran koruyucuda web görünümü kullanma.** macOS ekran koruyucuları kısıtlı bir süreçte çalıştırır ve `WKWebView` orada hiçbir şey çizmez (siyah ekran). Ekran koruyucu temaları süreç içinde JavaScriptCore ile çalıştırır. Masaüstü uygulaması `WKWebView` kullanmaya devam eder, orada çalışıyor.
 - **Dış komutlar:** Uygulama `dev.eymn.ascii-wallpaper.command` adlı dağıtık bildirimi dinler (userInfo değerleri string: `theme`, `next`, `panel`/`clock`/`name` `1|0`, `rotate` dakika). Kabuktan `osascript -l JavaScript` ile gönderilir; bildirimin `object`'i string olmalı (`"riceutil"`), JXA `null`'u NSNull yapıp çökertir. Bu arayüzü değiştirirsen riceutil'i de güncelle.
-- **Ayarlar** `dev.eymn.ascii-wallpaper` UserDefaults alanındadır: `theme`, `showPanel`, `showClock`, `showThemeName`, `rotateMinutes`, `city`, `latitude`, `longitude`.
+- **Ayarlar** `dev.eymn.ascii-wallpaper` UserDefaults alanındadır: `theme`, `showPanel`, `showClock`, `showThemeName`, `showClaude`, `rotateMinutes`, `city`, `latitude`, `longitude`. Ekran koruyucu kendi `dev.eymn.ascii-wallpaper.saver` alanını kullanır (`theme`, `showPanel`, `showClock`, `showThemeName`, `showClaude`).
 - **Tema kimliğini değiştirirken** eskisini `web/js/util.js` içindeki `AW.aliases`'a ekle: kayıtlı ayarlar ve eski komutlar yeni temayı açar, uygulama kayıtlı ayarı yenisine çevirir.
 - **Görsel temalar** varsayılan olarak sık ızgarayla (`fontScale` 0.4) çizilir; zemin hücrenin kendi rengidir, karakter dokuyu verir. Saat, panel, tema adı ve bildirim bu temalarda normal boyutlu ayrı bir arayüz ızgarasına çizilir (sayfada `main.js` `ui`, ekran koruyucuda `AWH.resizeUI` ve ikinci `AsciiRenderer`); böylece arayüz her temada aynı boyuttadır. Masaüstü sayfası sahnede yalnız değişen hücreleri yeniden çizer (`main.js` `render`), arayüz katmanını her karede üstüne çizer; yeni bir efekt her karede tüm hücreleri değiştirirse bu kazanç kaybolur.
 - **Yeni tema eklerken:** `web/js/themes/` + `web/index.html` script listesi (`main.js`'ten önce), sonra `node scripts/themes-manifest.mjs`, `node scripts/previews.cjs <kimlik>` ve `node scripts/gifs.cjs <kimlik>` (README galerisine hücre ekle), ardından `npm test`. Görünüşü değiştiren bir değişiklikten sonra önizlemeleri ve GIF'leri yeniden üret.
+- **Claude Code verisi:** `update(...)` verisindeki `claude` alanı (yoksa `null`) panelin tek kaynağıdır; panel yalnızca bu alan doluyken çizilir. Veri `~/.claude/sessions/*.json` + oturum kaydı JSONL'den okunur; bunlar Claude Code'un belgelenmemiş iç dosyalarıdır, biçim değişirse `ClaudeMonitor.swift` güncellenmeli. Ekran koruyucu süreci korumalı alanda ama `/` altını salt okunur okuyabiliyor (legacyScreenSaver yetkisi); orada `NSHomeDirectory()` kapsayıcıyı gösterdiği için ev dizini `getpwuid` ile bulunur. Token toplamı önbellekten okunan tokenları saymaz (her çağrıda tekrar sayılırdı).
 - Hava durumu anahtarsız Open-Meteo kullanır; depoya API anahtarı veya sır ekleme.
 - **Kullanıcıya verilen terminal komutlarında yer tutucu yol kullanma** (`/klasorunun/yolu` gibi); kullanıcı komutları olduğu gibi yapıştırır. Gerçek yollar ver.
 - Varsayılan dal `claude/project-thread-ljkqkv`'dir (`main` değil); PR'lar bu dala açılır.
@@ -315,3 +318,99 @@ Kullanıcı isteği: saat/panel ölçeklemesi düzeldikten sonra README'yi günc
 
 #### Bilinen sorunlar ve sonraki adımlar
 - Görünüş değişince GIF'ler kendiliğinden güncellenmez; `node scripts/gifs.cjs` yeniden çalıştırılmalı.
+
+### 2026-10-04 — Claude Code paneli (duvar kağıdı + ekran koruyucu)
+
+#### Amaç
+Claude Code çalışırken duvar kağıdında ve ekran koruyucuda bir kenarda ne yaptığını/düşündüğünü, harcanan token'ı ve süreyi, hareket eden Clawd maskotuyla göstermek. riceutil'e dokunulmadı.
+
+#### Yapılanlar
+- `mac/Sources/AsciiWallpaper/ClaudeMonitor.swift`: Yeni. Açık oturumu seçer, kaydı artımlı ve arka planda okur; durum, araç, son düşünce/mesaj, token, süre üretir.
+- `mac/Sources/AsciiWallpaper/WallpaperController.swift`, `StatusMenu.swift`: `showClaude` ayarı, menü anahtarı, `update` verisine `claude`.
+- `mac/Saver/AsciiSaverView.swift`, `SaverOptions.swift`, `scripts/build-saver.sh`: Ekran koruyucuya aynı veri ve Seçenekler'de anahtar.
+- `web/js/ui.js`: Clawd'lı Claude Code paneli (sağ alt; yer yoksa sol alt; o da yoksa çizilmez).
+- `web/js/main.js`: Tarayıcıda `?claude=demo`.
+- `tests/ui.test.mjs`: Panel içeriği, gizlenme ve çakışmama testleri. `README.md`: "Claude Code paneli" bölümü.
+
+#### Hedef durumu
+- [x] Panel duvar kağıdı ve ekran koruyucuda veriyle çiziliyor.
+- [x] Ayarlardan kapatılabiliyor.
+- [ ] Kurulu uygulamada (gerçek ekran koruyucu oturumunda) gözle doğrulama: kullanıcı yapacak.
+
+#### Teknik kararlar
+- Hook/ek kurulum yerine Claude Code'un kendi dosyaları okunur: sıfır yapılandırma. Bedeli: belgelenmemiş biçime bağımlılık.
+- Claude Code düşünce metnini kayda boş yazıyor (yalnızca imza); bu durumda panel son mesajı "son mesaj" etiketiyle gösterir.
+
+#### Testler
+- `npm test`: 52 test geçti.
+- `swift build -c release` (mac/) ve `./scripts/build-saver.sh`: Başarılı (yerel macOS).
+- `ClaudeMonitor` canlı oturuma karşı küçük bir test programıyla denendi; ekran koruyucu ekran dışı çizdirilip (check-saver'ın bekleme eklenmiş kopyası) panel görsel olarak kontrol edildi.
+- Önizlemeler (`web/previews`) değişmedi; panel yalnızca veri varken çizildiği için etkilenmez.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- `scripts/check-saver.swift` kareleri beklemeden çizdiği için CI görüntülerinde Claude paneli çıkmaz (CI'da Claude Code da yok).
+- riceutil'den paneli açıp kapatacak dış komut (`claude` anahtarı) eklenmedi; istenirse iki depoda birlikte yapılmalı.
+
+### 2026-10-04 — Duvar kağıdı ara sıra kararıyor
+
+#### Amaç
+Kullanıcı duvar kağıdının bazen kararıp "kapanmış gibi" olduğunu bildirdi. Uygulama süreci çalışıyordu ve çökme raporu yoktu.
+
+#### Yapılanlar
+- `mac/Sources/AsciiWallpaper/WallpaperWindow.swift`: `WKNavigationDelegate`; `webViewWebContentProcessDidTerminate` sayfayı yeniden yükler (yeni sayfa `ready` gönderince ayarlar yeniden uygulanır).
+
+#### Hedef durumu
+- [x] Kurtarma kodu eklendi, derleniyor.
+- [ ] Kararmanın bununla bittiğinin doğrulanması (kullanıcı gözlemleyecek).
+
+#### Teknik kararlar
+- Pencerenin zemini siyah ve web görünümünün sayfayı çizen ayrı bir süreci var; o süreç kapanınca hiçbir şey çizilmiyordu. Neden: `Belirsiz` (günlüklerde iz bulunamadı), en olası açıklama budur.
+
+#### Testler
+- `swift build -c release`: Başarılı. Süreç kapatma senaryosu elle denenmedi (WebContent süreçleri uygulamaya göre ayırt edilemiyor, ötekileri öldürmek başka uygulamaları etkiler).
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Kararma sürerse: `log stream --predicate 'eventMessage CONTAINS "AsciiWallpaper"'` ile "WebContent süreci kapandı" mesajı görünüyor mu bakılmalı.
+
+### 2026-10-04 — Vitrin tarzı README
+
+#### Amaç
+README'yi GitHub'da vitrin gibi duran bir hale getirmek; içerik korunur.
+
+#### Yapılanlar
+- `README.md`: Ortalanmış başlık, rozetler, ana görsel, özellik listesi, `web/previews` ile tema galerisi, Claude Code paneli görseli, açılır bölümler. `AI Generated` işareti tek kopya olarak korundu.
+- `docs/hero.jpg`, `docs/claude-panel.jpg`: Helium'un başsız modu (`--headless=new --screenshot`) ile `index.html?claude=demo` çekildi; Playwright kurulu değildi.
+
+#### Hedef durumu
+- [x] README yenilendi, görsel yolları doğrulandı.
+
+#### Testler
+- `npm test`: 52 test geçti.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Görsellerde sol alttaki "tema:" bildirimi görünüyor (başsız modda sayfa zamanı yavaş ilerliyor); önemsiz.
+
+### 2026-10-05 — Claude Code panelini depoya geri getirme
+
+#### Amaç
+Kullanıcı Claude Code panelinin kaybolduğunu bildirdi. Panelin çalışması (yukarıdaki 2026-10-04 kayıtları: panel, kararma düzeltmesi, vitrin README) yalnızca kullanıcının Mac'indeki `~/codeprojects/riceutil-wallpaper/Wallpaper` klonunda commit edilmemiş duruyordu; `riceutil wallpaper update` uygulamayı GitHub'dan yeniden derleyince panel kurulu uygulamadan gitti. Kapsam: o çalışmayı değiştirmeden depoya almak ve #6-#9 ile birleştirmek.
+
+#### Yapılanlar
+- Mac'teki 14 dosya, yerel çalışma ağacına dokunmadan (geçici index + `commit-tree`) `claude/project-thread-og59y5` dalına gönderildi, ardından varsayılan dal bu dala birleştirildi.
+- `README.md`: Vitrin düzeni korundu; "Temalar" bölümündeki önizleme tabloları #9'un GIF galerisiyle değiştirildi, Misa Train açıklaması ve 23 tema sayısı eklendi, yeni tema adımlarına GIF adımı eklendi.
+- `AGENTS.md`: İki tarafın kuralları ve kayıtları birlikte tutuldu.
+- `docs/hero.jpg`, `docs/claude-panel.jpg`: Görsel temaların yeni sık ızgarası ve normal boyutlu arayüz katmanıyla Playwright'ta (`?theme=hypr-kath&claude=demo`) yeniden çekildi.
+
+#### Hedef durumu
+- [x] Panel kodu depoda ve varsayılan dalla birleşik; sayfada görsel temalarda arayüz katmanında normal boyutta çiziliyor (başsız Chromium'da denendi).
+- [ ] Kurulu uygulamada ve ekran koruyucuda gözle doğrulama: kullanıcı güncelleyince.
+
+#### Teknik kararlar
+- Claude paneli `ui.js` içinde çizildiği için #8'in ayrı arayüz ızgarasına kendiliğinden girer; ek kod gerekmedi.
+
+#### Testler
+- `npm test`: 55 test geçti.
+- Swift (uygulama ve ekran koruyucu) yalnız macOS CI'da derlenir.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Mac'teki `~/codeprojects/riceutil-wallpaper/Wallpaper` klonu hâlâ eski dalda ve commit edilmemiş değişikliklerle duruyor; birleştirmeden sonra o klonda çalışılacaksa değişiklikler atılıp güncel dal çekilmeli.

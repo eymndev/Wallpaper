@@ -1,13 +1,15 @@
 import AppKit
 import ScreenSaver
 
-/// Ekran koruyucu: duvar kağıdıyla aynı temaları çizer ve CPU, RAM, pil ve ağ verisini gösterir.
+/// Ekran koruyucu: duvar kağıdıyla aynı temaları çizer ve CPU, RAM, pil, ağ ve Claude Code verisini gösterir.
 /// Temalar JavaScriptCore'da çalışır (AsciiEngine), karakterler Core Text ile çizilir (AsciiRenderer).
 /// Ekran koruyucu süreci WKWebView'ın içerik sürecini başlatamadığı için web görünümü kullanılmaz.
 @objc(AsciiSaverView)
 final class AsciiSaverView: ScreenSaverView {
     private let engine: AsciiEngine?
     private let stats = StatsMonitor()
+    private let claude = ClaudeMonitor()
+    private var showClaude = true
     private var renderer: AsciiRenderer?
     private var uiRenderer: AsciiRenderer?
     private var info: AsciiEngine.Info?
@@ -61,6 +63,7 @@ final class AsciiSaverView: ScreenSaverView {
         }
         themeID = id
         engine.setOptions(panel: settings.showPanel, clock: settings.showClock, themeName: settings.showThemeName)
+        showClaude = settings.showClaude
         renderer = nil // yazı ölçeği temaya göre değişebilir, ızgara yeniden kurulacak
     }
 
@@ -139,6 +142,7 @@ final class AsciiSaverView: ScreenSaverView {
             "down": s.downMBps, "up": s.upMBps,
         ]
         payload["battery"] = s.battery ?? NSNull()
+        payload["claude"] = (showClaude ? claude.current() : nil) ?? NSNull()
         engine?.update(payload)
     }
 

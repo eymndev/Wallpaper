@@ -16,6 +16,7 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
     private let stats = StatsMonitor()
     private let nowPlaying = NowPlaying()
     private let weather = Weather()
+    private let claude = ClaudeMonitor()
     private var track: String?
     private var timers: [Timer] = []
     private var lastRotation = Date()
@@ -40,6 +41,12 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
     var showThemeName: Bool {
         get { defaults.object(forKey: "showThemeName") as? Bool ?? true }
         set { defaults.set(newValue, forKey: "showThemeName"); broadcast("window.wallpaper && wallpaper.setThemeName(\(newValue))") }
+    }
+
+    /// Claude Code çalışırken köşedeki panel (veri her saniye `update` ile gider)
+    var showClaude: Bool {
+        get { defaults.object(forKey: "showClaude") as? Bool ?? true }
+        set { defaults.set(newValue, forKey: "showClaude"); tick() }
     }
 
     /// 0 = kapalı, aksi halde dakika cinsinden tema değiştirme aralığı
@@ -151,6 +158,7 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
             "weather": weather.text ?? "",
         ]
         payload["battery"] = s.battery ?? NSNull()
+        payload["claude"] = (showClaude ? claude.current() : nil) ?? NSNull()
         if let data = try? JSONSerialization.data(withJSONObject: payload),
            let json = String(data: data, encoding: .utf8) {
             broadcast("window.wallpaper && wallpaper.update(\(json))")
