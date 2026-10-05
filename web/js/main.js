@@ -42,6 +42,25 @@
     pushHist();
   }
 
+  // Tarayıcıda ?claude=demo: Claude Code panelini örnek veriyle göster
+  if (params.get("claude") === "demo") {
+    S.claude = {
+      project: "Wallpaper", model: "opus-5-5", state: "thinking", thoughtKind: "thinking", tool: "", lastTool: "Bash: npm test",
+      thought: "Panel sağ altta duruyor; sistem paneliyle çakışmıyorsa orada kalsın, yoksa sol alta geçsin.",
+      tokens: 184200, output: 12400, context: 96100, turn: 74, session: 1520,
+    };
+    const steps = [["thinking", ""], ["tool", "Read: ui.js"], ["writing", ""], ["tool", "Bash: npm test"], ["waiting", ""]];
+    let i = 0;
+    setInterval(() => {
+      const c = S.claude;
+      if (S.live) return;
+      if (++i % 5 === 0) [c.state, c.tool] = steps[(i / 5) % steps.length];
+      if (c.tool) c.lastTool = c.tool;
+      if (c.state !== "waiting") { c.turn++; c.output += 37; c.tokens += 420; }
+      c.session++;
+    }, 1000);
+  }
+
   function findTheme(id) {
     return AW.themes.find((t) => t.id === id) || AW.themes[0];
   }
