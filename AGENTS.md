@@ -51,7 +51,7 @@ Swift kodu Linux/bulut ortamında derlenemez; Swift değişiklikleri yalnızca m
 - **Görsel temalar** varsayılan olarak sık ızgarayla (`fontScale` 0.4) çizilir; zemin hücrenin kendi rengidir, karakter dokuyu verir. Saat, panel, tema adı ve bildirim bu temalarda normal boyutlu ayrı bir arayüz ızgarasına çizilir (sayfada `main.js` `ui`, ekran koruyucuda `AWH.resizeUI` ve ikinci `AsciiRenderer`); böylece arayüz her temada aynı boyuttadır. Masaüstü sayfası sahnede yalnız değişen hücreleri yeniden çizer (`main.js` `render`), arayüz katmanını her karede üstüne çizer; yeni bir efekt her karede tüm hücreleri değiştirirse bu kazanç kaybolur.
 - **Tema paketleri:** Klasik temalar uygulama paketinin içinde (`web/`), diğerleri `packs/<paket>/` altında ve kullanıcıda `~/Library/Application Support/ASCII Wallpaper/packs/<paket>/` içine kopyalanır (`scripts/pack.sh`). Uygulama paketlerin betiklerini `WKUserScript` ile sayfa açılmadan `AW_PACKS` olarak verir, `web/js/packs.js` bunları `AW.beginPack`/`AW.endPack` arasında çalıştırır (temalar `pack` alanını taşır); `packs reload` bildiriminde pencereler yeniden kurulur. Ekran koruyucu paketleri JavaScriptCore'da kendisi çalıştırır, `killall legacyScreenSaver` ile yeni listeyi okur. riceutil Wallpaper'ı seyrek + `--filter=blob:none` klonlar; `pack.sh add` seyrek klonda `git sparse-checkout add packs/<paket>` ile yalnız o paketi indirir. `pack.sh sync`, paket klasörü hiç yoksa (ilk kurulum ya da paketlerden önceki sürümden güncelleme) depoda bulunan tüm paketleri kurar: eski kurulumlar temalarını kaybetmez, riceutil'in seyrek klonundaki yeni kurulum yalnız Klasik'le başlar.
 - **Yeni tema eklerken:** Klasik için `web/js/themes/` + `web/index.html` script listesi (`main.js`'ten önce), paket için `packs/<paket>/js/` + `pack.json` `scripts` listesi; sonra `node scripts/themes-manifest.mjs`, `node scripts/previews.cjs <kimlik>` ve `node scripts/gifs.cjs <kimlik>` (README galerisine hücre ekle), ardından `npm test`. Görünüşü değiştiren bir değişiklikten sonra önizlemeleri ve GIF'leri yeniden üret.
-- **Claude Code verisi:** `update(...)` verisindeki `claude` alanı (yoksa `null`) panelin tek kaynağıdır; panel yalnızca bu alan doluyken çizilir. Veri `~/.claude/sessions/*.json` + oturum kaydı JSONL'den okunur; bunlar Claude Code'un belgelenmemiş iç dosyalarıdır, biçim değişirse `ClaudeMonitor.swift` güncellenmeli. Ekran koruyucu süreci korumalı alanda ama `/` altını salt okunur okuyabiliyor (legacyScreenSaver yetkisi); orada `NSHomeDirectory()` kapsayıcıyı gösterdiği için ev dizini `getpwuid` ile bulunur. Token toplamı önbellekten okunan tokenları saymaz (her çağrıda tekrar sayılırdı).
+- **Claude Code verisi:** `update(...)` verisindeki `claude` alanı (yoksa `null`) panelin tek kaynağıdır; panel yalnızca bu alan doluyken çizilir. Veri `~/.claude/sessions/*.json` + oturum kaydı JSONL'den okunur; bunlar Claude Code'un belgelenmemiş iç dosyalarıdır, biçim değişirse `ClaudeMonitor.swift` güncellenmeli. Claude masaüstü uygulamasının Code sekmesi aynı dosyaları aynı biçimde yazar (`entrypoint: claude-desktop`, `hostSessionId: local_...`); ayrı bir yol, hook ya da mod gerekmez. Klasörsüz masaüstü oturumları `~/Library/Application Support/Claude/scratch-workspaces/...` altında çalışır; panel başlığı onlarda `~/Library/Application Support/Claude/claude-code-sessions/*/*/<hostSessionId>.json` içindeki `title`'ı kullanır. Ekran koruyucu süreci korumalı alanda ama `/` altını salt okunur okuyabiliyor (legacyScreenSaver yetkisi); orada `NSHomeDirectory()` kapsayıcıyı gösterdiği için ev dizini `getpwuid` ile bulunur. Token toplamı önbellekten okunan tokenları saymaz (her çağrıda tekrar sayılırdı).
 - Hava durumu anahtarsız Open-Meteo kullanır; depoya API anahtarı veya sır ekleme.
 - **Kullanıcıya verilen terminal komutlarında yer tutucu yol kullanma** (`/klasorunun/yolu` gibi); kullanıcı komutları olduğu gibi yapıştırır. Gerçek yollar ver.
 - Varsayılan dal `claude/project-thread-ljkqkv`'dir (`main` değil); PR'lar bu dala açılır.
@@ -511,3 +511,28 @@ Kullanıcı isteği: tüm temaların telefon ve tabletler için yüksek çözün
 #### Bilinen sorunlar ve sonraki adımlar
 - Görünüş değişince PNG'ler kendiliğinden güncellenmez; `node scripts/mobile.cjs` yeniden çalıştırılmalı.
 - `mobile/` tam klonu 21 MB büyütür; riceutil'in seyrek klonunu etkilemez.
+
+### 2026-10-06 — Claude Code paneli: masaüstü uygulamasının Code sekmesi
+
+#### Amaç
+Kullanıcı isteği: Claude masaüstü uygulamasının Code sekmesine de mod desteği geldi; panel oradan çalışılırken de görünsün. Ayrı thread'deki "kapanıp açılma" sorunu kapsam dışı.
+
+#### Yapılanlar
+- Kullanıcının Mac'inde (salt okunur) incelendi: Code sekmesi oturumları uygulamanın kendi `claude` kopyasıyla çalışır ama `~/.claude/sessions/<pid>.json` ve `~/.claude/projects/<slug>/<oturum>.jsonl` dosyalarını terminal oturumlarıyla aynı biçimde yazar. Kurulu `ClaudeMonitor.swift` Mac'te derlenip çalışan bir masaüstü oturumuna karşı denendi: oturumu buldu, durum/araç/token doğru.
+- `mac/Sources/AsciiWallpaper/ClaudeMonitor.swift`: Klasörsüz masaüstü oturumlarında (cwd `.../Claude/scratch-workspaces/...`, adı `scratch-2026-10-03-583a1f` gibi) proje adı yerine uygulamanın sohbet başlığı; bulunamazsa "Claude".
+- `README.md`: Panelin Code sekmesiyle de çalıştığı.
+
+#### Hedef durumu
+- [x] Masaüstü oturumları panelde görünüyor (Mac'te kurulu kodla doğrulandı; değişiklik gerekmedi).
+- [ ] Sohbet başlığı: macOS CI'da derlenir; gerçek Mac'te klasörsüz bir oturumla `Doğrulanması gerekiyor`.
+
+#### Teknik kararlar
+- Mod (eklenti) yazılmadı: Code sekmesi aynı dosyaları yazdığı için dosya okumak iki yerde de çalışıyor ve kurulum gerektirmiyor. Bir mod ancak kurulduğu oturumlarda veri üretirdi.
+- Başlık dosyasının yeri önbelleklenir, içi her okumada yeniden okunur (uygulama başlığı ilk mesajdan sonra koyar).
+
+#### Testler
+- `npm test`: Geçti, başarısız test yok (değişen JS yok).
+- Swift yalnız macOS CI'da derlenir.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Birden çok oturum aynı anda meşgulse panel en son yazana geçer (önceden de böyleydi).
