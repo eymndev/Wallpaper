@@ -21,7 +21,7 @@ Bir de Claude Code çalışırken köşede yürüyen Clawd.
 
 <img src="docs/hero.jpg" alt="ASCII Wallpaper: Hypr · Kath teması, saat, sistem paneli ve Claude Code paneli" width="100%">
 
-[Kurulum](#kurulum) · [Temalar](#temalar) · [Tema paketleri](#tema-paketleri) · [Claude Code paneli](#claude-code-paneli) · [Ekran koruyucu](#ekran-koruyucu) · [riceutil](#riceutil-ile-yönetmek) · [Geliştirme](#geliştirme)
+[Kurulum](#kurulum) · [Temalar](#temalar) · [Telefon ve tablet](#telefon-ve-tablet-duvar-kağıtları) · [Tema paketleri](#tema-paketleri) · [Claude Code paneli](#claude-code-paneli) · [Ekran koruyucu](#ekran-koruyucu) · [riceutil](#riceutil-ile-yönetmek) · [Geliştirme](#geliştirme)
 
 </div>
 
@@ -31,6 +31,7 @@ Bir de Claude Code çalışırken köşede yürüyen Clawd.
 - 📈 **Canlı sistem verisi**: CPU, RAM, pil, ağ, çalan şarkı (Spotify / Müzik) ve hava durumu. Temaların çoğu bu veriye tepki verir.
 - 🦀 **Claude Code paneli**: Claude Code çalışırken ne yaptığı, son düşüncesi, süre ve token. Yanında yürüyen Clawd.
 - 🌙 **Ekran koruyucu**: Aynı temalar `.saver` olarak, web görünümü olmadan JavaScriptCore + Core Text ile çizilir.
+- 📱 **Telefon ve tablet**: Her temanın 4096x4096 PNG'si, iPhone, Android ve iPad'de aynı dosya ([mobile/](mobile)).
 - 🖥️ **Çoklu ekran**, menü çubuğu simgesi, temaları sırayla değiştirme, oturum açılışında başlatma.
 - 🔧 **[riceutil](https://github.com/eymndev/riceutil-macos) entegrasyonu**: terminalden ve GUI'den yönetim.
 
@@ -121,6 +122,24 @@ Her tema saat, sistem paneli (örnek veri) ve köşedeki tema adıyla birlikte, 
 #### Thousand Sunny
 
 `thousand-sunny`: Hasır Şapka Korsanları, Thousand Sunny'nin güvertesinde açık denizde. Mürettebat bir grup görselinden, gemi (aslan başı, direkler, korsan bayrağı) onun üstüne çizildi. Gemi dalgalarla inip kalkar; deniz ve bulutlar geriye akar, gövdede köpük, aslan başının önünde serpinti, kıçta dümen suyu, gökyüzünde martılar. CPU yükseldikçe gemi hızlanır.
+
+## Telefon ve tablet duvar kağıtları
+
+Her temanın 4096x4096 PNG'si [`mobile/`](mobile) klasöründe: tek dosya hem iPhone'da hem Android'de hem iPad'de çalışır, ayrı sürüm yok. Kare görsel her ekranda kırpılarak doldurur; telefon dikeyde ortadaki şeridi, tablet ortadaki geniş kısmı gösterir, ana figür ikisinde de kadrajda kalır. Saat ve sistem paneli çizilmez (telefon kendi saatini gösterir).
+
+Tek bir temayı indirmek (depoyu klonlamadan):
+
+```bash
+curl -L -o ~/Downloads/misa-train.png https://raw.githubusercontent.com/eymndev/Wallpaper/claude/project-thread-ljkqkv/mobile/misa-train.png
+```
+
+Hepsini birden (21 MB; depo klasörü `~/.local/share/riceutil/Wallpaper` ise):
+
+```bash
+git -C ~/.local/share/riceutil/Wallpaper sparse-checkout add mobile
+```
+
+riceutil'in klonu seyrek olduğu için `mobile/` klasörü bu komutu vermeden inmez; kurulumu büyütmez.
 
 ## Tema paketleri
 
@@ -266,7 +285,8 @@ Tema ekledikten sonra:
 1. `node scripts/themes-manifest.mjs`: `web/themes.tsv`, `packs/<paket>/themes.tsv`, `web/packs.tsv` ve `packs/index.js` listelerini günceller (riceutil temaları ve paketleri buradan okur).
 2. `node scripts/previews.cjs benim-tema`: `web/previews/benim-tema.jpg` (paketteyse `packs/<paket>/previews/`) önizlemesini üretir (Playwright gerekir: `npm i -g playwright`). riceutil GUI'si tema kartlarında bu görselleri gösterir.
 3. `node scripts/gifs.cjs benim-tema`: README galerisindeki `docs/gifs/benim-tema.gif` dosyasını üretir (Playwright ve Pillow gerekir); galeri tablosuna da bir hücre ekle.
-4. `npm test`: her temayı farklı ekran boyutlarında tarayıcı olmadan çalıştırıp hatasız çizdiğini kontrol eder.
+4. `node scripts/mobile.cjs benim-tema`: telefon ve tabletler için `mobile/benim-tema.png` (4096x4096) üretir (Playwright ve Pillow gerekir). Görsel temalarda ana figür ortadan kaçıyorsa `scripts/mobile.cjs` içindeki `FOCUS` tablosuna yatay konumunu (0..1) yaz.
+5. `npm test`: her temayı farklı ekran boyutlarında tarayıcı olmadan çalıştırıp hatasız çizdiğini kontrol eder.
 
 ### Yapı
 
@@ -277,5 +297,6 @@ mac/            Swift uygulaması (masaüstü penceresi, istatistikler, Claude C
 mac/Saver/      Ekran koruyucu (.saver)
 scripts/        Derleme, kurulum, paket, tema listesi ve görselden tema üretme betikleri
 tests/          Node testleri
+mobile/         Telefon ve tablet duvar kağıtları (4096x4096 PNG)
 docs/           README görselleri, docs/gifs/ galeri GIF'leri
 ```

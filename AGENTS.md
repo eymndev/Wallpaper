@@ -482,3 +482,32 @@ Kullanıcı isteği: gönderdiği Hasır Şapka Korsanları grup görselindeki k
 
 #### Bilinen sorunlar ve sonraki adımlar
 - Ön direkteki Hasır Şapka bayrağı sistem paneli açıkken panelin altında kalır.
+
+### 2026-10-06 — Telefon ve tablet için PNG duvar kağıtları
+
+#### Amaç
+Kullanıcı isteği: tüm temaların telefon ve tabletler için yüksek çözünürlüklü PNG sürümü; iPhone, Android ve iPad için ayrı dosya olmasın. Uygulama, ekran koruyucu ve temaların kendisi kapsam dışı.
+
+#### Yapılanlar
+- `scripts/mobile.cjs`: Her temayı başsız Chromium'da çizip `mobile/<tema>.png` (4096x4096) üretir. Prosedürel temalar kare (1024 CSS piksel, 4 kat yoğunluk), görsel temalar 16:9 çizilip `FOCUS` tablosundaki yatay konum ortada kalacak şekilde kare kırpılır. Saat, sistem paneli ve tema adı çizilmez. `AW_MOBILE_DIR` çıktı klasörünü değiştirir.
+- `mobile/`: 25 temanın PNG'si (toplam 21 MB).
+- `tests/mobile.test.mjs`: Her temanın PNG'si var mı, 4096x4096 mı, geçerli PNG mi.
+- `README.md`: "Telefon ve tablet duvar kağıtları" bölümü (tek dosya indirme ve `sparse-checkout add mobile`), özellik listesi, yeni tema adımlarına `mobile.cjs`, dizin ağacına `mobile/`.
+
+#### Hedef durumu
+- [x] 25 temanın tek, evrensel PNG'si üretildi ve kontrol edildi (telefon ~19.5:9 ve tablet 4:3 kırpımları gözle denendi).
+- [x] Depoda ayrı indirilebilir set: riceutil seyrek klonu `web mac scripts` aldığı için `mobile/` kendiliğinden inmez.
+
+#### Teknik kararlar
+- Cihaz başına ayrı dosya yerine tek kare görsel: telefon dikeyde ortadaki ~%46'lık şeridi, tablet (dikey ya da yatay 4:3) ortadaki geniş kısmı gösterir; ana figür `FOCUS` ile ortada tutulduğu için ikisinde de kadrajda kalır.
+- Görsel temalarda `fontScale` üretim sırasında 0.4 yerine 0.6 yapılır: masaüstündeki sık ızgara telefonda karakter değil piksel gibi görünüyordu, 0.6'da hücreler prosedürel temalardakiyle aynı boyda.
+- Canlı veri statik görselde anlamsız olduğu için saat ve panel kapalı; sayfa saati 21:30'a sabitlenir (sahnesinde saat çizen `hypr-corndog` gibi temalarda tekrarlanabilir sonuç).
+- 4096x4096: iPhone 17 Pro Max (1320x2868) ve iPad Pro 13" (2064x2752) dahil bugünkü tüm cihazların üstünde, dosyalar 0.1-3.5 MB.
+
+#### Testler
+- `npm test`: 64 test geçti.
+- Swift tarafı değişmedi.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Görünüş değişince PNG'ler kendiliğinden güncellenmez; `node scripts/mobile.cjs` yeniden çalıştırılmalı.
+- `mobile/` tam klonu 21 MB büyütür; riceutil'in seyrek klonunu etkilemez.
