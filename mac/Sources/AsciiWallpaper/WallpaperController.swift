@@ -23,6 +23,7 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
     private var track: String?
     private var timers: [Timer] = []
     private var lastRotation = Date()
+    private var screensChangePending: Task<Void, Never>?
 
     private let defaults = UserDefaults.standard
 
@@ -88,18 +89,46 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
 
     // MARK: Pencereler
 
+    /// macOS bu bildirimi yalnız ekran takılıp çıkınca değil, uykudan uyanma, çözünürlük, Dock ya da menü çubuğu
+    /// değişince de (çoğu zaman art arda birkaç kez) gönderir. Her seferinde pencereleri baştan kurmak sayfaları
+    /// yeniden yüklüyordu: duvar kağıdı kararıp tema bildirimiyle yeniden açılıyordu. Artık yalnız eklenen ekrana
+    /// pencere açılır, çıkanınki kapanır; kalanlar yerinde yeniden boyutlanır (sayfa kendi `resize`'ını yapar).
     @objc private func screensChanged() {
-        rebuildWindows()
+        screensChangePending?.cancel()
+        screensChangePending = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 500_000_000) // art arda gelen bildirimleri tek seferde işle
+            guard !Task.isCancelled else { return }
+            self?.syncWindows()
+        }
+    }
+
+    private func syncWindows() {
+        let screens = NSScreen.screens
+        var kept: [WallpaperWindow] = []
+        var packScript: String?
+        for screen in screens {
+            if let window = windows.first(where: { $0.displayID == screen.displayID && !kept.contains($0) }) {
+                if window.frame != screen.frame { window.setFrame(screen.frame, display: true) }
+                kept.append(window)
+            } else {
+                if packScript == nil { packScript = ThemePacks.pageScript() }
+                kept.append(makeWindow(screen, packScript: packScript ?? ""))
+            }
+        }
+        windows.filter { !kept.contains($0) }.forEach { $0.close() }
+        windows = kept
     }
 
     private func rebuildWindows() {
         windows.forEach { $0.close() }
         let packScript = ThemePacks.pageScript()
-        windows = NSScreen.screens.map { screen in
-            let window = WallpaperWindow(screen: screen, webDirectory: webDirectory, packScript: packScript, messageHandler: WeakHandler(self))
-            window.orderBack(nil)
-            return window
-        }
+        windows = NSScreen.screens.map { makeWindow($0, packScript: packScript) }
+    }
+
+    private func makeWindow(_ screen: NSScreen, packScript: String) -> WallpaperWindow {
+        let window = WallpaperWindow(screen: screen, webDirectory: webDirectory, packScript: packScript, messageHandler: WeakHandler(self))
+        window.orderBack(nil)
+        return window
     }
 
     private func broadcast(_ script: String) {
