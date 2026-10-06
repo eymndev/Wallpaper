@@ -167,7 +167,7 @@ riceutil olmadan, depo klasöründe:
 
 <img src="docs/claude-panel.jpg" alt="Claude Code paneli: Clawd, durum, çalışan araç, düşünce, süre ve token" width="440" align="right">
 
-Bilgisayarda [Claude Code](https://claude.com/claude-code) çalışıyorsa hem duvar kağıdında hem ekran koruyucuda sağ altta bir panel çıkar:
+Bilgisayarda [Claude Code](https://claude.com/claude-code) çalışıyorsa (terminalde ya da Claude masaüstü uygulamasının Code sekmesinde) hem duvar kağıdında hem ekran koruyucuda sağ altta bir panel çıkar:
 
 - **Clawd** panelde yürür: düşünürken balon, araç çalıştırırken zıplama, beklerken uyuklama
 - **Durum**: düşünüyor / araç çalıştırıyor / yazıyor / seni bekliyor, yanında model
@@ -183,7 +183,7 @@ Ağ, API anahtarı veya ek kurulum gerekmez.
 <details>
 <summary>Nasıl çalışıyor?</summary>
 
-Veri `~/.claude/sessions/*.json` (açık oturumlar) ve `~/.claude/projects/<proje>/<oturum>.jsonl` (oturum kaydı) dosyalarından okunur. Birden çok oturum açıksa meşgul olan, yoksa en son değişen gösterilir; 15 dakika hareketsiz kalan oturumun paneli kaybolur. Claude Code düşünce metnini kayda boş yazıyorsa panel son mesajı gösterir. Menü çubuğundan ya da ekran koruyucunun Seçenekler penceresinden kapatılabilir. Tarayıcıda `web/index.html?claude=demo` örnek veriyle gösterir.
+Veri `~/.claude/sessions/*.json` (açık oturumlar) ve `~/.claude/projects/<proje>/<oturum>.jsonl` (oturum kaydı) dosyalarından okunur. Masaüstü uygulamasının Code sekmesi de aynı dosyaları yazdığı için ek kurulum gerekmez; klasör seçmeden açılan oturumlarda panel başlığında klasör adı yerine sohbetin başlığı görünür. Birden çok oturum açıksa meşgul olan (birden çoksa en son yazan), yoksa en son değişen gösterilir; 15 dakika hareketsiz kalan oturumun paneli kaybolur. Claude Code düşünce metnini kayda boş yazıyorsa panel son mesajı gösterir. Menü çubuğundan ya da ekran koruyucunun Seçenekler penceresinden kapatılabilir. Tarayıcıda `web/index.html?claude=demo` örnek veriyle gösterir.
 
 </details>
 
