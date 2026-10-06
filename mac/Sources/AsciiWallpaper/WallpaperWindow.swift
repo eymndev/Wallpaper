@@ -4,6 +4,8 @@ import WebKit
 /// Bir ekranı kaplayan, masaüstü ikonlarının arkasında duran ve tıklamaları geçiren pencere.
 final class WallpaperWindow: NSWindow, WKNavigationDelegate {
     let webView: WKWebView
+    /// Pencerenin açıldığı ekran; ekranlar değişince pencere bununla eşlenir
+    let displayID: CGDirectDisplayID?
 
     /// packScript: kurulu tema paketlerinin betikleri (ThemePacks.pageScript), sayfanın kendi betiklerinden önce çalışır
     init(screen: NSScreen, webDirectory: URL, packScript: String, messageHandler: WKScriptMessageHandler) {
@@ -15,6 +17,7 @@ final class WallpaperWindow: NSWindow, WKNavigationDelegate {
         webView = WKWebView(frame: CGRect(origin: .zero, size: screen.frame.size), configuration: config)
         webView.setValue(false, forKey: "drawsBackground") // açılışta beyaz parlamayı önler
         webView.autoresizingMask = [.width, .height]
+        displayID = screen.displayID
 
         super.init(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
 
@@ -45,5 +48,11 @@ final class WallpaperWindow: NSWindow, WKNavigationDelegate {
 
     func run(_ script: String) {
         webView.evaluateJavaScript(script, completionHandler: nil)
+    }
+}
+
+extension NSScreen {
+    var displayID: CGDirectDisplayID? {
+        (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
     }
 }

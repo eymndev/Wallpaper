@@ -52,6 +52,7 @@ Swift kodu Linux/bulut ortamında derlenemez; Swift değişiklikleri yalnızca m
 - **Tema paketleri:** Klasik temalar uygulama paketinin içinde (`web/`), diğerleri `packs/<paket>/` altında ve kullanıcıda `~/Library/Application Support/ASCII Wallpaper/packs/<paket>/` içine kopyalanır (`scripts/pack.sh`). Uygulama paketlerin betiklerini `WKUserScript` ile sayfa açılmadan `AW_PACKS` olarak verir, `web/js/packs.js` bunları `AW.beginPack`/`AW.endPack` arasında çalıştırır (temalar `pack` alanını taşır); `packs reload` bildiriminde pencereler yeniden kurulur. Ekran koruyucu paketleri JavaScriptCore'da kendisi çalıştırır, `killall legacyScreenSaver` ile yeni listeyi okur. riceutil Wallpaper'ı seyrek + `--filter=blob:none` klonlar; `pack.sh add` seyrek klonda `git sparse-checkout add packs/<paket>` ile yalnız o paketi indirir. `pack.sh sync`, paket klasörü hiç yoksa (ilk kurulum ya da paketlerden önceki sürümden güncelleme) depoda bulunan tüm paketleri kurar: eski kurulumlar temalarını kaybetmez, riceutil'in seyrek klonundaki yeni kurulum yalnız Klasik'le başlar.
 - **Yeni tema eklerken:** Klasik için `web/js/themes/` + `web/index.html` script listesi (`main.js`'ten önce), paket için `packs/<paket>/js/` + `pack.json` `scripts` listesi; sonra `node scripts/themes-manifest.mjs`, `node scripts/previews.cjs <kimlik>` ve `node scripts/gifs.cjs <kimlik>` (README galerisine hücre ekle), ardından `npm test`. Görünüşü değiştiren bir değişiklikten sonra önizlemeleri ve GIF'leri yeniden üret.
 - **Claude Code verisi:** `update(...)` verisindeki `claude` alanı (yoksa `null`) panelin tek kaynağıdır; panel yalnızca bu alan doluyken çizilir. Veri `~/.claude/sessions/*.json` + oturum kaydı JSONL'den okunur; bunlar Claude Code'un belgelenmemiş iç dosyalarıdır, biçim değişirse `ClaudeMonitor.swift` güncellenmeli. Ekran koruyucu süreci korumalı alanda ama `/` altını salt okunur okuyabiliyor (legacyScreenSaver yetkisi); orada `NSHomeDirectory()` kapsayıcıyı gösterdiği için ev dizini `getpwuid` ile bulunur. Token toplamı önbellekten okunan tokenları saymaz (her çağrıda tekrar sayılırdı).
+- **Ekran değişince pencereleri baştan kurma.** `didChangeScreenParametersNotification` uyanma, Dock, Space gibi durumlarda da art arda gelir; `WallpaperController.syncWindows` pencereleri ekran kimliğiyle eşleyip yalnız boyutlar, eklenen/çıkan ekran için açar/kapatır. Baştan kurmak (`rebuildWindows`) yalnız açılışta ve `packs reload`da yapılır.
 - Hava durumu anahtarsız Open-Meteo kullanır; depoya API anahtarı veya sır ekleme.
 - **Kullanıcıya verilen terminal komutlarında yer tutucu yol kullanma** (`/klasorunun/yolu` gibi); kullanıcı komutları olduğu gibi yapıştırır. Gerçek yollar ver.
 - Varsayılan dal `claude/project-thread-ljkqkv`'dir (`main` değil); PR'lar bu dala açılır.
@@ -511,3 +512,26 @@ Kullanıcı isteği: tüm temaların telefon ve tabletler için yüksek çözün
 #### Bilinen sorunlar ve sonraki adımlar
 - Görünüş değişince PNG'ler kendiliğinden güncellenmez; `node scripts/mobile.cjs` yeniden çalıştırılmalı.
 - `mobile/` tam klonu 21 MB büyütür; riceutil'in seyrek klonunu etkilemez.
+
+### 2026-10-06 — Duvar kağıdı kapanıp açılıyor
+
+#### Amaç
+Kullanıcı duvar kağıdının ara sıra kapanıp açıldığını (kararıp yeniden geldiğini) bildirdi. Claude Code paneli ve ekran koruyucu kapsam dışı.
+
+#### Yapılanlar
+- `mac/Sources/AsciiWallpaper/WallpaperController.swift`: `screensChanged` artık pencereleri kapatıp yeniden açmıyor; bildirimler 0.5 sn birleştirilir, `syncWindows` mevcut pencereleri ekran kimliğiyle eşleyip yalnız çerçevesini günceller, yalnız eklenen ekrana pencere açar, çıkanınkini kapatır.
+- `mac/Sources/AsciiWallpaper/WallpaperWindow.swift`: Pencere açıldığı ekranın kimliğini (`displayID`) tutar; `NSScreen.displayID`.
+
+#### Hedef durumu
+- [x] Ekran bildirimi sayfaları yeniden yüklemiyor (kod; macOS CI'da derlenir).
+- [ ] Kullanıcının Mac'inde kapanıp açılmanın bittiği: `Doğrulanması gerekiyor`.
+
+#### Teknik kararlar
+- Kullanıcının Mac'indeki günlükler: çökme raporu ve WebContent sonlanması yok; ekran uykudan uyanınca (`displaysleep` 2 dk) ve ekran olayı olmadan da (Space/görünürlük değişimi sanılıyor, `Belirsiz`) uygulama ~2 sn içinde 43-94 kez web görünümü kurup kapatıyordu. Neden: her `didChangeScreenParametersNotification`'da `rebuildWindows`. Önceki kayıttaki "WebContent süreci kapandı" açıklaması bu belirti için doğru değildi.
+
+#### Testler
+- `npm test`: 64 test geçti (web tarafı değişmedi).
+- Swift yalnız macOS CI'da derlenir.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Yok.
