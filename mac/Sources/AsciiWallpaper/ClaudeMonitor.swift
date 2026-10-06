@@ -5,17 +5,22 @@ import Foundation
 /// yazıyor, bekliyor), son düşüncesi ya da yazdığı, harcanan token ve geçen süre.
 /// - `sessions/<pid>.json`: açık Claude Code süreçleri (pid, sessionId, cwd, status).
 /// - `projects/<cwd>/<sessionId>.jsonl`: oturumun kaydı; dosyanın yalnızca yeni eklenen kısmı okunur.
+/// Claude masaüstü uygulamasının Code sekmesindeki oturumlar da aynı dosyaları yazar (`entrypoint: claude-desktop`);
+/// klasörsüz başlatılanlar `scratch-workspaces` altında çalışır, onlarda proje adı yerine uygulamanın sohbet başlığı
+/// (`Library/Application Support/Claude/claude-code-sessions/*/*/<hostSessionId>.json` `title`) gösterilir.
 /// Uygulama ve ekran koruyucu birlikte kullanır. Ekran koruyucu süreci korumalı alanda çalışır ama "/" altını salt
 /// okunur okuyabilir; orada `NSHomeDirectory()` kapsayıcıyı gösterdiği için gerçek ev dizini `getpwuid` ile bulunur.
 /// Dosya okuma arka planda yapılır; `current()` beklemeden son ölçümü döner.
 final class ClaudeMonitor: @unchecked Sendable {
     private let root: URL
+    private let desktopSessions: URL
     private let queue = DispatchQueue(label: "dev.eymn.ascii-wallpaper.claude", qos: .utility)
     private let lock = NSLock()
     private var snapshot: [String: Any]?
     private var reading = false
     private var lastRead: TimeInterval = 0
     private var transcript: Transcript? // yalnızca `queue` üzerinde kullanılır
+    private var titleFiles: [String: URL] = [:] // hostSessionId -> uygulamanın oturum dosyası; yalnızca `queue` üzerinde
 
     /// Son etkinlikten bu kadar sonra (ve süreç meşgul değilse) panel gizlenir
     private static let idleLimit: TimeInterval = 15 * 60
@@ -23,6 +28,7 @@ final class ClaudeMonitor: @unchecked Sendable {
     init() {
         let home = getpwuid(getuid()).flatMap { String(validatingCString: $0.pointee.pw_dir) } ?? NSHomeDirectory()
         root = URL(fileURLWithPath: home).appendingPathComponent(".claude")
+        desktopSessions = URL(fileURLWithPath: home).appendingPathComponent("Library/Application Support/Claude/claude-code-sessions")
     }
 
     /// Etkin bir oturum varsa sayfaya gönderilecek veri, yoksa nil. Her çağrı (en çok saniyede bir) yenilemeyi tetikler.
@@ -49,6 +55,7 @@ final class ClaudeMonitor: @unchecked Sendable {
     private struct Session {
         let id: String
         let cwd: String
+        let host: String? // masaüstü uygulamasının oturum kimliği (local_...)
         let busy: Bool?
         let transcript: URL
         let modified: Date
@@ -78,7 +85,7 @@ final class ClaudeMonitor: @unchecked Sendable {
         }
         let start = transcript.start ?? now
         return [
-            "project": (session.cwd as NSString).lastPathComponent,
+            "project": projectName(session),
             "model": transcript.model.hasPrefix("claude-") ? String(transcript.model.dropFirst(7)) : transcript.model,
             "state": state,
             "thought": transcript.thought,
@@ -108,7 +115,8 @@ final class ClaudeMonitor: @unchecked Sendable {
                   let file = transcriptURL(id: id, cwd: o["cwd"] as? String ?? "")
             else { continue }
             let status = o["status"] as? String
-            sessions.append(Session(id: id, cwd: o["cwd"] as? String ?? "", busy: status.map { $0 == "busy" },
+            sessions.append(Session(id: id, cwd: o["cwd"] as? String ?? "", host: o["hostSessionId"] as? String,
+                                    busy: status.map { $0 == "busy" },
                                     transcript: file, modified: modified(file)))
         }
         if let best = sessions.max(by: { ($0.busy == true ? 1 : 0, $0.modified) < ($1.busy == true ? 1 : 0, $1.modified) }) {
@@ -127,8 +135,37 @@ final class ClaudeMonitor: @unchecked Sendable {
         }
         guard let newest, Date().timeIntervalSince(newest.date) < 120 else { return nil }
         let cwd = Transcript.cwd(of: newest.url) ?? newest.url.deletingLastPathComponent().lastPathComponent
-        return Session(id: newest.url.deletingPathExtension().lastPathComponent, cwd: cwd, busy: nil,
+        return Session(id: newest.url.deletingPathExtension().lastPathComponent, cwd: cwd, host: nil, busy: nil,
                        transcript: newest.url, modified: newest.date)
+    }
+
+    /// Klasör adı; masaüstü uygulamasında klasörsüz açılan oturumlarda (geçici `scratch-...` klasörü) sohbet başlığı.
+    private func projectName(_ session: Session) -> String {
+        let folder = (session.cwd as NSString).lastPathComponent
+        guard session.cwd.contains("/Claude/scratch-workspaces/") else { return folder }
+        return session.host.flatMap(desktopTitle) ?? "Claude"
+    }
+
+    /// Başlık uygulamada sonradan değişebildiği için dosya her okumada yeniden okunur; yalnızca yeri önbelleklenir.
+    private func desktopTitle(_ host: String) -> String? {
+        let fm = FileManager.default
+        if titleFiles[host] == nil {
+            search: for account in (try? fm.contentsOfDirectory(at: desktopSessions, includingPropertiesForKeys: nil)) ?? [] {
+                for org in (try? fm.contentsOfDirectory(at: account, includingPropertiesForKeys: nil)) ?? [] {
+                    let file = org.appendingPathComponent(host + ".json")
+                    if fm.fileExists(atPath: file.path) {
+                        titleFiles[host] = file
+                        break search
+                    }
+                }
+            }
+        }
+        guard let file = titleFiles[host], let data = try? Data(contentsOf: file),
+              let o = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let title = o["title"] as? String
+        else { return nil }
+        let line = Transcript.oneLine(title)
+        return line.isEmpty ? nil : line
     }
 
     /// Kayıt yolu: proje klasörü adı cwd'deki harf/rakam dışı karakterlerin "-" yapılmış hali.
