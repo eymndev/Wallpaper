@@ -21,7 +21,7 @@ Bir de Claude Code çalışırken köşede yürüyen Clawd.
 
 <img src="docs/hero.jpg" alt="ASCII Wallpaper: Hypr · Kath teması, saat, sistem paneli ve Claude Code paneli" width="100%">
 
-[Kurulum](#kurulum) · [Temalar](#temalar) · [Telefon ve tablet](#telefon-ve-tablet-duvar-kağıtları) · [Tema paketleri](#tema-paketleri) · [Claude Code paneli](#claude-code-paneli) · [Ekran koruyucu](#ekran-koruyucu) · [riceutil](#riceutil-ile-yönetmek) · [Geliştirme](#geliştirme)
+[Kurulum](#kurulum) · [Temalar](#temalar) · [Kilit ekranı](#kilit-ekranı-ve-sabit-masaüstü-resimleri) · [Telefon ve tablet](#telefon-ve-tablet-duvar-kağıtları) · [Tema paketleri](#tema-paketleri) · [Claude Code paneli](#claude-code-paneli) · [Ekran koruyucu](#ekran-koruyucu) · [riceutil](#riceutil-ile-yönetmek) · [Geliştirme](#geliştirme)
 
 </div>
 
@@ -31,6 +31,7 @@ Bir de Claude Code çalışırken köşede yürüyen Clawd.
 - 📈 **Canlı sistem verisi**: CPU, RAM, pil, ağ, çalan şarkı (Spotify / Müzik) ve hava durumu. Temaların çoğu bu veriye tepki verir.
 - 🦀 **Claude Code paneli**: Claude Code çalışırken ne yaptığı, son düşüncesi, süre ve token. Yanında yürüyen Clawd.
 - 🌙 **Ekran koruyucu**: Aynı temalar `.saver` olarak, web görünümü olmadan JavaScriptCore + Core Text ile çizilir.
+- 🔒 **Kilit ekranında da tema**: Her temanın 5760x3600 sabit PNG'si; uygulama etkin temanınkini macOS'un masaüstü resmi yapar, kilit ekranı ve giriş ekranı da aynı temayı gösterir.
 - 📱 **Telefon ve tablet**: Her temanın 4096x4096 PNG'si, iPhone, Android ve iPad'de aynı dosya ([mobile/](mobile)).
 - 🖥️ **Çoklu ekran**, menü çubuğu simgesi, temaları sırayla değiştirme, oturum açılışında başlatma.
 - 🔧 **[riceutil](https://github.com/eymndev/riceutil-macos) entegrasyonu**: terminalden ve GUI'den yönetim.
@@ -122,6 +123,18 @@ Her tema saat, sistem paneli (örnek veri) ve köşedeki tema adıyla birlikte, 
 #### Thousand Sunny
 
 `thousand-sunny`: Hasır Şapka Korsanları, Thousand Sunny'nin güvertesinde açık denizde. Mürettebat bir grup görselinden, gemi (aslan başı, direkler, korsan bayrağı) onun üstüne çizildi. Gemi dalgalarla inip kalkar; deniz ve bulutlar geriye akar, gövdede köpük, aslan başının önünde serpinti, kıçta dümen suyu, gökyüzünde martılar. CPU yükseldikçe gemi hızlanır.
+
+## Kilit ekranı ve sabit masaüstü resimleri
+
+Hareketli duvar kağıdı masaüstünün en altında duran bir penceredir. Kilit ekranı, giriş ekranı, uygulama kapalıyken ya da açılırken ise macOS kendi masaüstü resmini gösterir; bu yüzden oralarda tema görünmüyordu. Artık her temanın 5760x3600 (16:10) sabit PNG'si var ve uygulama tema her değiştiğinde (açılışta, menüden, riceutil'den, sırayla değiştirirken) etkin temanınkini tüm ekranlarda macOS'un masaüstü resmi yapar. Başka bir Space'e geçince orada da ayarlar.
+
+Menü çubuğundaki **Kilit ekranında da göster** ile kapatılır; kapatınca önceki masaüstü resmin geri gelir.
+
+PNG'ler Klasik temalar için [`web/desktop/`](web/desktop), paket temaları için `packs/<paket>/desktop/` içinde (paketle birlikte iner). Saat ve sistem paneli çizilmez. Elle kullanmak için tek bir temayı indirmek:
+
+```bash
+curl -L -o ~/Downloads/misa-train-masaustu.png https://raw.githubusercontent.com/eymndev/Wallpaper/claude/project-thread-ljkqkv/packs/anime/desktop/misa-train.png
+```
 
 ## Telefon ve tablet duvar kağıtları
 
@@ -285,13 +298,14 @@ Tema ekledikten sonra:
 1. `node scripts/themes-manifest.mjs`: `web/themes.tsv`, `packs/<paket>/themes.tsv`, `web/packs.tsv` ve `packs/index.js` listelerini günceller (riceutil temaları ve paketleri buradan okur).
 2. `node scripts/previews.cjs benim-tema`: `web/previews/benim-tema.jpg` (paketteyse `packs/<paket>/previews/`) önizlemesini üretir (Playwright gerekir: `npm i -g playwright`). riceutil GUI'si tema kartlarında bu görselleri gösterir.
 3. `node scripts/gifs.cjs benim-tema`: README galerisindeki `docs/gifs/benim-tema.gif` dosyasını üretir (Playwright ve Pillow gerekir); galeri tablosuna da bir hücre ekle.
-4. `node scripts/mobile.cjs benim-tema`: telefon ve tabletler için `mobile/benim-tema.png` (4096x4096) üretir (Playwright ve Pillow gerekir). Görsel temalarda ana figür ortadan kaçıyorsa `scripts/mobile.cjs` içindeki `FOCUS` tablosuna yatay konumunu (0..1) yaz.
-5. `npm test`: her temayı farklı ekran boyutlarında tarayıcı olmadan çalıştırıp hatasız çizdiğini kontrol eder.
+4. `node scripts/desktop.cjs benim-tema`: kilit ekranı için sabit masaüstü PNG'si üretir (`web/desktop/benim-tema.png`, paketteyse `packs/<paket>/desktop/`, 5760x3600; Playwright gerekir).
+5. `node scripts/mobile.cjs benim-tema`: telefon ve tabletler için `mobile/benim-tema.png` (4096x4096) üretir (Playwright ve Pillow gerekir). Görsel temalarda ana figür ortadan kaçıyorsa `scripts/mobile.cjs` içindeki `FOCUS` tablosuna yatay konumunu (0..1) yaz.
+6. `npm test`: her temayı farklı ekran boyutlarında tarayıcı olmadan çalıştırıp hatasız çizdiğini kontrol eder.
 
 ### Yapı
 
 ```
-web/            Duvar kağıdı sayfası (motor, arayüz, Klasik temalar)
+web/            Duvar kağıdı sayfası (motor, arayüz, Klasik temalar; web/desktop/ sabit masaüstü PNG'leri)
 packs/          Ayrı indirilen tema paketleri (hyprland, anime)
 mac/            Swift uygulaması (masaüstü penceresi, istatistikler, Claude Code izleyici, menü)
 mac/Saver/      Ekran koruyucu (.saver)
