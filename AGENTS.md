@@ -15,6 +15,7 @@ Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işa
 - `packs/<paket>/`: Ayrı indirilen tema paketleri (`hyprland`, `anime`). `pack.json` (kimlik, ad, sıra, açıklama, yüklenme sırasıyla betikler), `js/` (temalar ve görselden üretilmiş `*.data.js`), `previews/`, `themes.tsv`. `packs/index.js` tarayıcıda depodan açılınca tüm paketleri yükler (üretilir).
 - `web/themes.tsv`: Klasik temaların listesi (`kimlik<TAB>ad`); `packs/<paket>/themes.tsv` paketlerinki; `web/packs.tsv` paket kataloğu (`kimlik<TAB>ad<TAB>dahili<TAB>tema sayısı<TAB>açıklama`). riceutil bunları okur.
 - `web/previews/<kimlik>.jpg`, `packs/<paket>/previews/<kimlik>.jpg`: Temaların önizlemesi; riceutil GUI'sinin tema kartları kullanır.
+- `web/desktop/<kimlik>.png`, `packs/<paket>/desktop/<kimlik>.png`: Temaların 5760x3600 sabit masaüstü resmi; uygulama etkin temanınkini macOS'un masaüstü resmi yapar (kilit ekranı). `mac/Sources/AsciiWallpaper/DesktopPicture.swift`.
 - `mac/Sources/AsciiWallpaper/`: Swift uygulama (SwiftPM). Her ekranda masaüstü seviyesinde bir `WKWebView` penceresi açar, istatistikleri saniyede bir `wallpaper.update(...)` ile sayfaya gönderir, menü çubuğu menüsü burada.
 - `mac/Sources/AsciiWallpaper/ClaudeMonitor.swift`: `~/.claude` altından çalışan Claude Code oturumunu okur; uygulama ve ekran koruyucu ortak kullanır (`build-saver.sh` bu dosyayı da derler).
 - `mac/Sources/AsciiWallpaper/ThemePacks.swift`: Kurulu tema paketlerini okur; uygulama ve ekran koruyucu ortak kullanır (`build-saver.sh` bunu da derler).
@@ -33,6 +34,7 @@ Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işa
 - `./scripts/pack.sh list [--tsv] | add <paket>... | remove <paket>... | sync`: Tema paketlerini kurar/kaldırır (`AW_PACKS_DIR` ile klasör değişir). `riceutil wallpaper packs|pack` bunu çağırır.
 - `node scripts/themes-manifest.mjs`: `web/themes.tsv`, `packs/*/themes.tsv`, `web/packs.tsv` ve `packs/index.js`'yi yeniden üretir. Tema/paket ekleyince/silince çalıştır; bir test bunu denetler.
 - `node scripts/previews.cjs [kimlik ...]`: Önizlemeleri temanın yerine (`web/previews` ya da `packs/<paket>/previews`) üretir (Playwright gerekir). Yeni temanın önizlemesi yoksa test başarısız olur.
+- `node scripts/desktop.cjs [kimlik ...]`: Sabit masaüstü PNG'lerini temanın yerine (`web/desktop` ya da `packs/<paket>/desktop`) üretir (Playwright; 1440x900 CSS pikseli 4 kat yoğunlukla, saat/panel/tema adı yok). PNG'si olmayan tema testte başarısız olur.
 - `node scripts/gifs.cjs [kimlik ...]`: README galerisindeki `docs/gifs/*.gif` dosyalarını üretir (Playwright + Pillow; sayfanın saatini Playwright ile ilerletir, 3 sn, 8 kare/sn, 720x450).
 - `python3 scripts/encode-image.py gorsel.png kimlik [--dir packs/anime/js/light] [--size 640x360] [--mask maske.png]`: Görselden tema verisi üretir (Pillow gerekir); `--dir` depo köküne göre çıktı dizini (varsayılan `packs/hyprland/js/hypr`), `--size` hedef boyut (varsayılan 320x180), `--mask` aynı boyutta siyah-beyaz maskeyi bit dizisi olarak `mask` alanına yazar (tema `AW.decode64` ile okur; ör. `thousand-sunny` gemiyi gökyüzü/denizden ayırır).
 
@@ -46,11 +48,12 @@ Swift kodu Linux/bulut ortamında derlenemez; Swift değişiklikleri yalnızca m
 
 - **Ekran koruyucuda web görünümü kullanma.** macOS ekran koruyucuları kısıtlı bir süreçte çalıştırır ve `WKWebView` orada hiçbir şey çizmez (siyah ekran). Ekran koruyucu temaları süreç içinde JavaScriptCore ile çalıştırır. Masaüstü uygulaması `WKWebView` kullanmaya devam eder, orada çalışıyor.
 - **Dış komutlar:** Uygulama `dev.eymn.ascii-wallpaper.command` adlı dağıtık bildirimi dinler (userInfo değerleri string: `theme`, `next`, `panel`/`clock`/`name` `1|0`, `rotate` dakika, `packs` `reload`). Kabuktan `osascript -l JavaScript` ile gönderilir; bildirimin `object`'i string olmalı (`"riceutil"`), JXA `null`'u NSNull yapıp çökertir. Bu arayüzü değiştirirsen riceutil'i de güncelle.
-- **Ayarlar** `dev.eymn.ascii-wallpaper` UserDefaults alanındadır: `theme`, `showPanel`, `showClock`, `showThemeName`, `showClaude`, `rotateMinutes`, `city`, `latitude`, `longitude`. Ekran koruyucu kendi `dev.eymn.ascii-wallpaper.saver` alanını kullanır (`theme`, `showPanel`, `showClock`, `showThemeName`, `showClaude`).
+- **Ayarlar** `dev.eymn.ascii-wallpaper` UserDefaults alanındadır: `theme`, `showPanel`, `showClock`, `showThemeName`, `showClaude`, `desktopPicture` (kilit ekranında da göster, varsayılan açık), `previousDesktopPicture` (kullanıcının eski masaüstü resmi, kapatınca geri konur), `rotateMinutes`, `city`, `latitude`, `longitude`. Ekran koruyucu kendi `dev.eymn.ascii-wallpaper.saver` alanını kullanır (`theme`, `showPanel`, `showClock`, `showThemeName`, `showClaude`).
 - **Tema kimliğini değiştirirken** eskisini `web/js/util.js` içindeki `AW.aliases`'a ekle: kayıtlı ayarlar ve eski komutlar yeni temayı açar, uygulama kayıtlı ayarı yenisine çevirir.
 - **Görsel temalar** varsayılan olarak sık ızgarayla (`fontScale` 0.4) çizilir; zemin hücrenin kendi rengidir, karakter dokuyu verir. Saat, panel, tema adı ve bildirim bu temalarda normal boyutlu ayrı bir arayüz ızgarasına çizilir (sayfada `main.js` `ui`, ekran koruyucuda `AWH.resizeUI` ve ikinci `AsciiRenderer`); böylece arayüz her temada aynı boyuttadır. Masaüstü sayfası sahnede yalnız değişen hücreleri yeniden çizer (`main.js` `render`), arayüz katmanını her karede üstüne çizer; yeni bir efekt her karede tüm hücreleri değiştirirse bu kazanç kaybolur.
 - **Tema paketleri:** Klasik temalar uygulama paketinin içinde (`web/`), diğerleri `packs/<paket>/` altında ve kullanıcıda `~/Library/Application Support/ASCII Wallpaper/packs/<paket>/` içine kopyalanır (`scripts/pack.sh`). Uygulama paketlerin betiklerini `WKUserScript` ile sayfa açılmadan `AW_PACKS` olarak verir, `web/js/packs.js` bunları `AW.beginPack`/`AW.endPack` arasında çalıştırır (temalar `pack` alanını taşır); `packs reload` bildiriminde pencereler yeniden kurulur. Ekran koruyucu paketleri JavaScriptCore'da kendisi çalıştırır, `killall legacyScreenSaver` ile yeni listeyi okur. riceutil Wallpaper'ı seyrek + `--filter=blob:none` klonlar; `pack.sh add` seyrek klonda `git sparse-checkout add packs/<paket>` ile yalnız o paketi indirir. `pack.sh sync`, paket klasörü hiç yoksa (ilk kurulum ya da paketlerden önceki sürümden güncelleme) depoda bulunan tüm paketleri kurar: eski kurulumlar temalarını kaybetmez, riceutil'in seyrek klonundaki yeni kurulum yalnız Klasik'le başlar.
-- **Yeni tema eklerken:** Klasik için `web/js/themes/` + `web/index.html` script listesi (`main.js`'ten önce), paket için `packs/<paket>/js/` + `pack.json` `scripts` listesi; sonra `node scripts/themes-manifest.mjs`, `node scripts/previews.cjs <kimlik>` ve `node scripts/gifs.cjs <kimlik>` (README galerisine hücre ekle), ardından `npm test`. Görünüşü değiştiren bir değişiklikten sonra önizlemeleri ve GIF'leri yeniden üret.
+- **Yeni tema eklerken:** Klasik için `web/js/themes/` + `web/index.html` script listesi (`main.js`'ten önce), paket için `packs/<paket>/js/` + `pack.json` `scripts` listesi; sonra `node scripts/themes-manifest.mjs`, `node scripts/previews.cjs <kimlik>`, `node scripts/desktop.cjs <kimlik>`, `node scripts/mobile.cjs <kimlik>` ve `node scripts/gifs.cjs <kimlik>` (README galerisine hücre ekle), ardından `npm test`. Görünüşü değiştiren bir değişiklikten sonra önizlemeleri, GIF'leri ve sabit PNG'leri yeniden üret.
+- **Kilit ekranı = sistemin masaüstü resmi.** Hareketli duvar kağıdı bir penceredir; kilit/giriş ekranı ve uygulamanın çizmediği anlar macOS'un masaüstü resmini gösterir. Uygulama sayfa her `theme` mesajı gönderdiğinde (ve `ready`, Space değişimi, ekran eklenince) etkin temanın PNG'sini `~/Library/Application Support/ASCII Wallpaper/desktop/<tema>-<boyut>.png` olarak kopyalayıp `NSWorkspace.setDesktopImageURL` ile tüm ekranlara verir; zaten oysa dokunmaz. Kopyalanır ki uygulama güncellenirken/paket kaldırılınca dosya kaybolmasın; adındaki boyut PNG yeniden üretilince macOS'un eski görüntüyü önbellekten göstermesini önler. Masaüstü resmi Space başına olduğu için Space değişimi dinlenir.
 - **Claude Code verisi:** `update(...)` verisindeki `claude` alanı (yoksa `null`) panelin tek kaynağıdır; panel yalnızca bu alan doluyken çizilir. Veri `~/.claude/sessions/*.json` + oturum kaydı JSONL'den okunur; bunlar Claude Code'un belgelenmemiş iç dosyalarıdır, biçim değişirse `ClaudeMonitor.swift` güncellenmeli. Claude masaüstü uygulamasının Code sekmesi aynı dosyaları aynı biçimde yazar (`entrypoint: claude-desktop`, `hostSessionId: local_...`); ayrı bir yol, hook ya da mod gerekmez. Klasörsüz masaüstü oturumları `~/Library/Application Support/Claude/scratch-workspaces/...` altında çalışır; panel başlığı onlarda `~/Library/Application Support/Claude/claude-code-sessions/*/*/<hostSessionId>.json` içindeki `title`'ı kullanır. Ekran koruyucu süreci korumalı alanda ama `/` altını salt okunur okuyabiliyor (legacyScreenSaver yetkisi); orada `NSHomeDirectory()` kapsayıcıyı gösterdiği için ev dizini `getpwuid` ile bulunur. Token toplamı önbellekten okunan tokenları saymaz (her çağrıda tekrar sayılırdı).
 - **Ekran değişince pencereleri baştan kurma.** `didChangeScreenParametersNotification` uyanma, Dock, Space gibi durumlarda da art arda gelir; `WallpaperController.syncWindows` pencereleri ekran kimliğiyle eşleyip yalnız boyutlar, eklenen/çıkan ekran için açar/kapatır. Baştan kurmak (`rebuildWindows`) yalnız açılışta ve `packs reload`da yapılır.
 - Hava durumu anahtarsız Open-Meteo kullanır; depoya API anahtarı veya sır ekleme.
@@ -560,3 +563,35 @@ Kullanıcı duvar kağıdının ara sıra kapanıp açıldığını (kararıp ye
 
 #### Bilinen sorunlar ve sonraki adımlar
 - Yok.
+
+### 2026-10-08 — Kilit ekranı için sabit masaüstü PNG'leri
+
+#### Amaç
+Kullanıcı isteği: mobildeki gibi bilgisayar için de duvar kağıtları; kilit ekranında tema bazen görünmüyor, görünmediği yerde de görünsün. Temaların görünüşü, ekran koruyucu ve riceutil kapsam dışı.
+
+#### Yapılanlar
+- `scripts/desktop.cjs`: Her temayı başsız Chromium'da 1440x900 CSS pikseli 4 kat yoğunlukla (5760x3600) saat/panel/tema adı olmadan çizer; Klasik `web/desktop/`, paketler `packs/<paket>/desktop/`.
+- `web/desktop/*.png` (13, 5.2 MB), `packs/hyprland/desktop/*.png` (9, 13 MB), `packs/anime/desktop/*.png` (3, 12 MB).
+- `mac/Sources/AsciiWallpaper/DesktopPicture.swift`: Yeni. PNG'yi Application Support'a kopyalar, tüm ekranlarda masaüstü resmi yapar ("Ekranı doldur", siyah zemin), kullanıcının önceki resmini saklar ve kapatınca geri koyar.
+- `mac/Sources/AsciiWallpaper/WallpaperController.swift`, `StatusMenu.swift`: `desktopPicture` ayarı, menüde "Kilit ekranında da göster"; `theme`/`ready` mesajında, Space değişiminde ve `syncWindows` sonrasında güncellenir.
+- `tests/desktop.test.mjs`: Her temanın PNG'si var, 5760x3600, 8 MB'tan küçük; artık tema PNG'si kalmamış.
+- `.github/workflows/ci.yml`: Uygulama açılınca ve tema değişince sistemin masaüstü resmi o temanın kopyası mı; kurulumda PNG'ler uygulamada ve pakette mi.
+- `README.md`: "Kilit ekranı ve sabit masaüstü resimleri" bölümü, yeni tema adımlarına `desktop.cjs`.
+
+#### Hedef durumu
+- [x] 25 temanın masaüstü PNG'si üretildi ve test ediliyor.
+- [ ] Sistem masaüstü resminin ayarlanması: macOS CI'da denenecek; kilit ekranında görünmesi gerçek Mac'te `Doğrulanması gerekiyor`.
+
+#### Teknik kararlar
+- Kilit ekranında görünmemenin nedeni: hareketli duvar kağıdı bir pencere, kilit ekranı ise macOS'un kendi masaüstü resmini gösterir (o resim kullanıcının eski seçimiydi). Çözüm sistemin resmini temaya eşitlemek.
+- Tek boyut (16:10, 5760x3600): MacBook ekranlarına (~1.55) en yakın oran; 16:9 5K/6K ekranlar "Ekranı doldur" ile üstten/alttan ~%10 kırpılır. Mobil sette olduğu gibi cihaz başına ayrı dosya yok.
+- PNG'ler uygulama tarafından çalışma anında üretilmiyor (web görünümünden ekran görüntüsü arayüzü de yakalar, ayrı bir çizim yolu gerekirdi); depoda hazır duruyorlar. Klasikler uygulama paketine (`web/`) girer, paket PNG'leri paketle iner. riceutil'in seyrek klonu (`web mac scripts`) Klasik PNG'leri de alır (~5 MB).
+- Paket PNG'si olmayan eski bir paket kurulumunda (paket güncellenmeden) masaüstü resmi değiştirilmez; `riceutil wallpaper update` paketleri de günceller.
+
+#### Testler
+- `npm test`: 66 test geçti.
+- Swift yalnız macOS CI'da derlenir.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Görünüş değişince PNG'ler kendiliğinden güncellenmez; `node scripts/desktop.cjs` yeniden çalıştırılmalı.
+- riceutil'den bu ayarı açıp kapatacak dış komut yok; istenirse iki depoda birlikte eklenmeli.

@@ -45,10 +45,17 @@ jobs:
                   "dev.eymn.ascii-wallpaper.command", "riceutil", info, true);
               }' "$@" >/dev/null
           }
+          # Etkin temanın sabit PNG'si macOS'un masaüstü resmi olur (kilit ekranında görünen)
+          desktop_picture() {
+            osascript -l JavaScript -e 'ObjC.import("AppKit"); $.NSWorkspace.sharedWorkspace.desktopImageURLForScreen($.NSScreen.mainScreen).path.js'
+          }
+          desktop_picture
+          desktop_picture | grep -q "ASCII Wallpaper/desktop/lake-"
           send theme hypr-kath name 1
           sleep 3
           screencapture -x build/app-hypr-kath.png || true
           test "$(defaults read dev.eymn.ascii-wallpaper theme)" = hypr-kath
+          desktop_picture | grep -q "ASCII Wallpaper/desktop/hypr-kath-"
           send theme bilinmeyen-tema
           sleep 1
           test "$(defaults read dev.eymn.ascii-wallpaper theme)" = hypr-kath
@@ -77,6 +84,8 @@ jobs:
           test -f "$RUNNER_TEMP/Applications/ASCII Wallpaper.app/Contents/Resources/web/themes.tsv"
           test -f "$RUNNER_TEMP/Applications/ASCII Wallpaper.app/Contents/Resources/web/packs.tsv"
           test -f "$HOME/Library/Application Support/ASCII Wallpaper/packs/anime/js/light.js"
+          test -f "$RUNNER_TEMP/Applications/ASCII Wallpaper.app/Contents/Resources/web/desktop/lake.png"
+          test -f "$HOME/Library/Application Support/ASCII Wallpaper/packs/anime/desktop/light-yagami.png"
       - name: Ekran koruyucuyu derle
         run: ./scripts/build-saver.sh
       - name: Ekran koruyucuyu yükleyip çizdir
