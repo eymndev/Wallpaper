@@ -20,6 +20,8 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
     private let nowPlaying = NowPlaying()
     private let weather = Weather()
     private let claude = ClaudeMonitor()
+    private let codex = AgentMonitor(provider: .codex)
+    private let antigravity = AgentMonitor(provider: .antigravity)
     private var track: String?
     private var timers: [Timer] = []
     private var lastRotation = Date()
@@ -50,6 +52,16 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
     var showClaude: Bool {
         get { defaults.object(forKey: "showClaude") as? Bool ?? true }
         set { defaults.set(newValue, forKey: "showClaude"); tick() }
+    }
+
+    var showCodex: Bool {
+        get { defaults.object(forKey: "showCodex") as? Bool ?? true }
+        set { defaults.set(newValue, forKey: "showCodex"); tick() }
+    }
+
+    var showAntigravity: Bool {
+        get { defaults.object(forKey: "showAntigravity") as? Bool ?? true }
+        set { defaults.set(newValue, forKey: "showAntigravity"); tick() }
     }
 
     /// 0 = kapalı, aksi halde dakika cinsinden tema değiştirme aralığı
@@ -172,6 +184,8 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
         ]
         payload["battery"] = s.battery ?? NSNull()
         payload["claude"] = (showClaude ? claude.current() : nil) ?? NSNull()
+        payload["codex"] = (showCodex ? codex.current() : nil) ?? NSNull()
+        payload["antigravity"] = (showAntigravity ? antigravity.current() : nil) ?? NSNull()
         if let data = try? JSONSerialization.data(withJSONObject: payload),
            let json = String(data: data, encoding: .utf8) {
             broadcast("window.wallpaper && wallpaper.update(\(json))")

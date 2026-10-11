@@ -9,6 +9,10 @@ final class AsciiSaverView: ScreenSaverView {
     private let engine: AsciiEngine?
     private let stats = StatsMonitor()
     private let claude = ClaudeMonitor()
+    private let codex = AgentMonitor(provider: .codex)
+    private let antigravity = AgentMonitor(provider: .antigravity)
+    private var showCodex = true
+    private var showAntigravity = true
     private var showClaude = true
     private var renderer: AsciiRenderer?
     private var uiRenderer: AsciiRenderer?
@@ -64,6 +68,8 @@ final class AsciiSaverView: ScreenSaverView {
         themeID = id
         engine.setOptions(panel: settings.showPanel, clock: settings.showClock, themeName: settings.showThemeName)
         showClaude = settings.showClaude
+        showCodex = settings.showCodex
+        showAntigravity = settings.showAntigravity
         renderer = nil // yazı ölçeği temaya göre değişebilir, ızgara yeniden kurulacak
     }
 
@@ -143,6 +149,8 @@ final class AsciiSaverView: ScreenSaverView {
         ]
         payload["battery"] = s.battery ?? NSNull()
         payload["claude"] = (showClaude ? claude.current() : nil) ?? NSNull()
+        payload["codex"] = (showCodex ? codex.current() : nil) ?? NSNull()
+        payload["antigravity"] = (showAntigravity ? antigravity.current() : nil) ?? NSNull()
         engine?.update(payload)
     }
 

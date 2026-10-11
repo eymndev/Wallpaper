@@ -25,6 +25,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Derle
         run: ./scripts/build-app.sh
+      - name: Codex ve Antigravity okuyucu testleri
+        run: |
+          swiftc mac/Sources/AsciiWallpaper/AgentMonitor.swift tests/agents.swift -o build/check-agents
+          ./build/check-agents
       - name: Tema paketlerini kur
         run: |
           ./scripts/pack.sh add hyprland anime

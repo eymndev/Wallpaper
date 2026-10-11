@@ -74,3 +74,53 @@ test("Claude Code paneli yer yoksa sistem paneliyle çakışmıyor", () => {
     assert.ok(text.includes(" SİSTEM "), `${cols}x${rows}: sistem paneli bozulmamalı`);
   }
 });
+
+for (const [provider, title, icon] of [["codex", "CODEX", "[ >_ ]"], ["antigravity", "ANTIGRAVITY", " /\\/\\ "]]) {
+  test(`${title} kendi adı ve simgesiyle çiziliyor; eksik ölçümler sıfır olmuyor`, () => {
+    const g = new AW.Grid(160, 50, 0.5);
+    AW.drawUI(g, new Date(), 1, { ...S, [provider]: { ...CLAUDE, model: "", tokens: null, output: null, context: null } }, null, {});
+    const text = Array.from({ length: g.rows }, (_, y) => rowText(g, y)).join("\n");
+    assert.ok(text.includes(`${title} · Wallpaper`));
+    assert.ok(text.includes(icon));
+    assert.ok(text.includes("— token  ↓ —  bağlam —"));
+    assert.ok(!text.includes("CLAUDE CODE"));
+    assert.ok(!text.includes("▐▛███▜▌"));
+  });
+}
+
+test("üç ajan aynı ekranda birbirini ve saat/sistem panelini örtmüyor", () => {
+  const g = new AW.Grid(160, 50, 0.5);
+  AW.drawUI(g, new Date(), 1, { ...S, claude: CLAUDE, codex: CLAUDE, antigravity: CLAUDE }, null, { themeName: "Gece Gölü" });
+  const rows = Array.from({ length: g.rows }, (_, y) => rowText(g, y));
+  const boxes = [];
+  for (const title of ["CLAUDE CODE", "CODEX", "ANTIGRAVITY"]) {
+    const y = rows.findIndex((r) => r.includes(`${title} ·`));
+    assert.ok(y >= 0, `${title} görünmeli`);
+    const at = rows[y].indexOf(`${title} ·`);
+    const x = rows[y].lastIndexOf("┌", at);
+    const end = rows[y].indexOf("┐", at);
+    boxes.push({ x, y, end });
+    for (let r = y + 1; r < y + AW.claudePanelHeight - 1; r++) {
+      assert.ok(["│", "├"].includes(rows[r][x]));
+      assert.ok(["│", "┤"].includes(rows[r][end]));
+    }
+    assert.equal(rows[y + AW.claudePanelHeight - 1][x], "└");
+  }
+  for (let a = 0; a < boxes.length; a++) for (let b = a + 1; b < boxes.length; b++) {
+    const A = boxes[a], B = boxes[b];
+    assert.ok(A.end < B.x || B.end < A.x || A.y + 15 <= B.y || B.y + 15 <= A.y);
+  }
+  assert.ok(rows.join("\n").includes(" SİSTEM "));
+  assert.ok(rows[g.rows - 2].includes("Gece Gölü"));
+});
+
+test("dar ekranda meşgul ajan öncelikli; boş veri panel çizmez", () => {
+  const g = new AW.Grid(100, 36, 0.5);
+  AW.drawUI(g, new Date(), 1, { ...S, claude: { ...CLAUDE, state: "waiting" }, codex: CLAUDE, antigravity: null }, null, {});
+  assert.ok(g.ch.join("").includes("CODEX · Wallpaper"));
+  assert.ok(!g.ch.join("").includes("CLAUDE CODE"));
+  const empty = new AW.Grid(160, 50, 0.5);
+  AW.drawUI(empty, new Date(), 1, { ...S, codex: null, antigravity: null }, null, {});
+  assert.ok(!empty.ch.join("").includes("CODEX"));
+  assert.ok(!empty.ch.join("").includes("ANTIGRAVITY"));
+});

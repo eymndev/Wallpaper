@@ -4,7 +4,7 @@ Bu depoda çalışacak geliştiriciler ve kodlama agent'ları (Codex, Claude vb.
 
 ## Proje özeti
 
-macOS için ASCII karakterlerle çizilen, hareketli ve canlı sistem istatistikleri (CPU, RAM, pil, ağ, çalan şarkı, hava durumu) ve çalışan Claude Code oturumunu gösteren duvar kağıdı ve aynı temalarla çalışan bir ekran koruyucu. 25 tema üç pakette: Klasik (13 özgün tema, uygulamanın içinde), Hyprland (9 yarışma kazananı görselinden `hypr-*`) ve Anime (Death Note'tan `misa-train`, `light-yagami`; One Piece'ten `thousand-sunny`). Hyprland ve Anime ayrı indirilir (bkz. "Tema paketleri"). [riceutil](https://github.com/eymndev/riceutil-macos) bu uygulamayı kurar ve yönetir.
+macOS için ASCII karakterlerle çizilen, hareketli ve canlı sistem istatistikleri (CPU, RAM, pil, ağ, çalan şarkı, hava durumu) ve çalışan Claude Code, Codex ve Antigravity oturumlarını gösteren duvar kağıdı ve aynı temalarla çalışan bir ekran koruyucu. 25 tema üç pakette: Klasik (13 özgün tema, uygulamanın içinde), Hyprland (9 yarışma kazananı görselinden `hypr-*`) ve Anime (Death Note'tan `misa-train`, `light-yagami`; One Piece'ten `thousand-sunny`). Hyprland ve Anime ayrı indirilir (bkz. "Tema paketleri"). [riceutil](https://github.com/eymndev/riceutil-macos) bu uygulamayı kurar ve yönetir.
 
 Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işareti var.
 
@@ -17,6 +17,8 @@ Proje neredeyse tamamen AI (Claude) ile yazıldı; README'de `AI Generated` işa
 - `web/previews/<kimlik>.jpg`, `packs/<paket>/previews/<kimlik>.jpg`: Temaların önizlemesi; riceutil GUI'sinin tema kartları kullanır.
 - `mac/Sources/AsciiWallpaper/`: Swift uygulama (SwiftPM). Her ekranda masaüstü seviyesinde bir `WKWebView` penceresi açar, istatistikleri saniyede bir `wallpaper.update(...)` ile sayfaya gönderir, menü çubuğu menüsü burada.
 - `mac/Sources/AsciiWallpaper/ClaudeMonitor.swift`: `~/.claude` altından çalışan Claude Code oturumunu okur; uygulama ve ekran koruyucu ortak kullanır (`build-saver.sh` bu dosyayı da derler).
+- `mac/Sources/AsciiWallpaper/AgentMonitor.swift`: Codex rollout JSONL ve Antigravity konuşma SQLite/transcript kaynaklarını salt okunur okur; ortak panel şeması üretir. Uygulama ve ekran koruyucu kullanır.
+- `tests/agents.swift`: Geçici ev dizini/SQLite ile okuyucu testleri; macOS CI derleyip çalıştırır.
 - `mac/Sources/AsciiWallpaper/ThemePacks.swift`: Kurulu tema paketlerini okur; uygulama ve ekran koruyucu ortak kullanır (`build-saver.sh` bunu da derler).
 - `mac/Saver/`: Ekran koruyucu (`.saver`). Temaları JavaScriptCore + `web/js/headless.js` ile çalıştırır, Core Text ile çizer.
 - `docs/`: README görselleri (`hero.jpg`, `claude-panel.jpg`; Claude paneli `?claude=demo` örnek verisiyle çekildi, gerçek oturum içeriği README'ye girmesin).
@@ -46,12 +48,13 @@ Swift kodu Linux/bulut ortamında derlenemez; Swift değişiklikleri yalnızca m
 
 - **Ekran koruyucuda web görünümü kullanma.** macOS ekran koruyucuları kısıtlı bir süreçte çalıştırır ve `WKWebView` orada hiçbir şey çizmez (siyah ekran). Ekran koruyucu temaları süreç içinde JavaScriptCore ile çalıştırır. Masaüstü uygulaması `WKWebView` kullanmaya devam eder, orada çalışıyor.
 - **Dış komutlar:** Uygulama `dev.eymn.ascii-wallpaper.command` adlı dağıtık bildirimi dinler (userInfo değerleri string: `theme`, `next`, `panel`/`clock`/`name` `1|0`, `rotate` dakika, `packs` `reload`). Kabuktan `osascript -l JavaScript` ile gönderilir; bildirimin `object`'i string olmalı (`"riceutil"`), JXA `null`'u NSNull yapıp çökertir. Bu arayüzü değiştirirsen riceutil'i de güncelle.
-- **Ayarlar** `dev.eymn.ascii-wallpaper` UserDefaults alanındadır: `theme`, `showPanel`, `showClock`, `showThemeName`, `showClaude`, `rotateMinutes`, `city`, `latitude`, `longitude`. Ekran koruyucu kendi `dev.eymn.ascii-wallpaper.saver` alanını kullanır (`theme`, `showPanel`, `showClock`, `showThemeName`, `showClaude`).
+- **Ayarlar** `dev.eymn.ascii-wallpaper` UserDefaults alanındadır: `theme`, `showPanel`, `showClock`, `showThemeName`, `showClaude`, `showCodex`, `showAntigravity`, `rotateMinutes`, `city`, `latitude`, `longitude`. Ekran koruyucu kendi `dev.eymn.ascii-wallpaper.saver` alanını kullanır (`theme`, `showPanel`, `showClock`, `showThemeName`, `showClaude`, `showCodex`, `showAntigravity`).
 - **Tema kimliğini değiştirirken** eskisini `web/js/util.js` içindeki `AW.aliases`'a ekle: kayıtlı ayarlar ve eski komutlar yeni temayı açar, uygulama kayıtlı ayarı yenisine çevirir.
 - **Görsel temalar** varsayılan olarak sık ızgarayla (`fontScale` 0.4) çizilir; zemin hücrenin kendi rengidir, karakter dokuyu verir. Saat, panel, tema adı ve bildirim bu temalarda normal boyutlu ayrı bir arayüz ızgarasına çizilir (sayfada `main.js` `ui`, ekran koruyucuda `AWH.resizeUI` ve ikinci `AsciiRenderer`); böylece arayüz her temada aynı boyuttadır. Masaüstü sayfası sahnede yalnız değişen hücreleri yeniden çizer (`main.js` `render`), arayüz katmanını her karede üstüne çizer; yeni bir efekt her karede tüm hücreleri değiştirirse bu kazanç kaybolur.
 - **Tema paketleri:** Klasik temalar uygulama paketinin içinde (`web/`), diğerleri `packs/<paket>/` altında ve kullanıcıda `~/Library/Application Support/ASCII Wallpaper/packs/<paket>/` içine kopyalanır (`scripts/pack.sh`). Uygulama paketlerin betiklerini `WKUserScript` ile sayfa açılmadan `AW_PACKS` olarak verir, `web/js/packs.js` bunları `AW.beginPack`/`AW.endPack` arasında çalıştırır (temalar `pack` alanını taşır); `packs reload` bildiriminde pencereler yeniden kurulur. Ekran koruyucu paketleri JavaScriptCore'da kendisi çalıştırır, `killall legacyScreenSaver` ile yeni listeyi okur. riceutil Wallpaper'ı seyrek + `--filter=blob:none` klonlar; `pack.sh add` seyrek klonda `git sparse-checkout add packs/<paket>` ile yalnız o paketi indirir. `pack.sh sync`, paket klasörü hiç yoksa (ilk kurulum ya da paketlerden önceki sürümden güncelleme) depoda bulunan tüm paketleri kurar: eski kurulumlar temalarını kaybetmez, riceutil'in seyrek klonundaki yeni kurulum yalnız Klasik'le başlar.
 - **Yeni tema eklerken:** Klasik için `web/js/themes/` + `web/index.html` script listesi (`main.js`'ten önce), paket için `packs/<paket>/js/` + `pack.json` `scripts` listesi; sonra `node scripts/themes-manifest.mjs`, `node scripts/previews.cjs <kimlik>` ve `node scripts/gifs.cjs <kimlik>` (README galerisine hücre ekle), ardından `npm test`. Görünüşü değiştiren bir değişiklikten sonra önizlemeleri ve GIF'leri yeniden üret.
 - **Claude Code verisi:** `update(...)` verisindeki `claude` alanı (yoksa `null`) panelin tek kaynağıdır; panel yalnızca bu alan doluyken çizilir. Veri `~/.claude/sessions/*.json` + oturum kaydı JSONL'den okunur; bunlar Claude Code'un belgelenmemiş iç dosyalarıdır, biçim değişirse `ClaudeMonitor.swift` güncellenmeli. Ekran koruyucu süreci korumalı alanda ama `/` altını salt okunur okuyabiliyor (legacyScreenSaver yetkisi); orada `NSHomeDirectory()` kapsayıcıyı gösterdiği için ev dizini `getpwuid` ile bulunur. Token toplamı önbellekten okunan tokenları saymaz (her çağrıda tekrar sayılırdı).
+- **Codex / Antigravity verisi:** `update(...)` içindeki `codex` ve `antigravity` alanları ayrı panellere gider (yoksa `null`). Codex `~/.codex/sessions` veya `CODEX_HOME/sessions` rollout kayıtlarını artımlı okur; alt ajanlar hariç. Antigravity masaüstü/CLI/IDE veri köklerindeki `conversation_summaries.db` salt okunur SQLite ile ve `brain/<id>/.system_generated/logs/transcript.jsonl` değişince yeniden okuyarak izlenir. 15 dakika etkinliği olmayan oturumlar gizlenir; meşgul ana oturum önceliklidir. Eksik ölçümler `null` → `—`; cache tokenları toplama tekrar eklenmez. Model/araç ayrıntısı yalnız kayıtta varsa gösterilir. Kimlik doğrulama dosyaları okunmaz. Kaynak biçimleri değişebilir.
 - Hava durumu anahtarsız Open-Meteo kullanır; depoya API anahtarı veya sır ekleme.
 - **Kullanıcıya verilen terminal komutlarında yer tutucu yol kullanma** (`/klasorunun/yolu` gibi); kullanıcı komutları olduğu gibi yapıştırır. Gerçek yollar ver.
 - Varsayılan dal `claude/project-thread-ljkqkv`'dir (`main` değil); PR'lar bu dala açılır.
@@ -511,3 +514,37 @@ Kullanıcı isteği: tüm temaların telefon ve tabletler için yüksek çözün
 #### Bilinen sorunlar ve sonraki adımlar
 - Görünüş değişince PNG'ler kendiliğinden güncellenmez; `node scripts/mobile.cjs` yeniden çalıştırılmalı.
 - `mobile/` tam klonu 21 MB büyütür; riceutil'in seyrek klonunu etkilemez.
+
+
+### 2026-10-11 — Codex ve Antigravity panelleri
+
+#### Amaç
+Mevcut Claude Code panelinin yanında Codex ve Antigravity oturumlarını duvar kağıdı ve ekran koruyucuda göstermek. Temalar, riceutil ve diğer iki eski klon kapsam dışı. Güncel kurulum kaynağı `~/.local/share/riceutil/Wallpaper`; çalışma dalı `codex/codex-antigravity-panels`.
+
+#### Yapılanlar
+- `mac/Sources/AsciiWallpaper/AgentMonitor.swift`: Arka plan okuyucusu, ortak şema, durum/tur/token hesapları; Antigravity SQLite erişimi sistem `SQLite3` modülüyle salt okunur.
+- `WallpaperController.swift`, `StatusMenu.swift`, `mac/Saver/AsciiSaverView.swift`, `SaverOptions.swift`, `scripts/build-saver.sh`: Yeni sağlayıcılar ve ayrı `showCodex` / `showAntigravity` ayarları (varsayılan açık).
+- `web/js/ui.js`, `main.js`: Sağlayıcı adı/rengi/animasyonlu ASCII simgesi, çakışmayan çoklu panel yerleşimi, dar ekranda çalışan ajan önceliği, demo parametreleri. Claude/Clawd desteği korunur.
+- `tests/ui.test.mjs`, `tests/agents.swift`, `.github/workflows/ci.yml`: UI ve Swift okuyucu testleri; macOS CI okuyucu testlerini de çalıştırır.
+- `README.md`: Kullanım, kaynaklar, eksik veri davranışı ve test komutları.
+
+#### Hedef durumu
+- [x] Codex ve Antigravity okuyucuları, paneller ve ayrı ayarlar uygulandı.
+- [x] Oturum okuyucusu fixture testleri ve canlı Codex kontrolü geçti.
+- [x] Üç panel örnek verili gerçek tarayıcı görüntüsünde çakışmadan çizildi (`build/agent-panels.png`).
+- [x] Son paketler `~/Applications/ASCII Wallpaper.app` ve `~/Library/Screen Savers/ASCII Wallpaper.saver` konumlarına kuruldu, uygulama başlatıldı.
+
+#### Teknik kararlar
+- Hook ve ek dependency gerektirmeden mevcut yerel kayıtlar okunur. Antigravity'de DB çalışma durumunun kaynaktır; transcript'teki tamamlanan tek mesaj tüm turu bitmiş saydırmaz.
+- Antigravity'nin mevcut kayıtlarında model/araç ayrıntısı yok; bunlar uydurulmaz. Eksik sayılar sıfır yerine `—` gösterilir.
+
+#### Testler
+- `npm test`: 68 test geçti. Son UI düzenlemesi sonrası `node --test tests/ui.test.mjs`: 9 test geçti.
+- `swiftc ... AgentMonitor.swift tests/agents.swift -o build/check-agents` ve `./build/check-agents --live`: Geçti; canlı oturum içeriği çıktıya yazılmadı.
+- `swift build -c release` ve `./scripts/build-saver.sh`: Geçti; Swift sistem önbelleği/SwiftPM sandbox kısıtı nedeniyle onaylı sandbox dışı derleme kullanıldı.
+- Başsız Helium'da üç sağlayıcının demo paneli görsel olarak doğrulandı.
+- `./build/check-saver "build/ASCII Wallpaper.saver" lake`: Geçti, çizilen piksel oranı %9,7.
+- `./scripts/install.sh`: Son uygulama ve evrensel ekran koruyucu derlenip kuruldu ve uygulama başlatıldı; kurulu binary/UI dosyalarının derleme kaynaklarıyla SHA-256 eşleşmesi doğrulandı.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Aktif gerçek Antigravity oturumu yoktu; mevcut eski oturumun gizlenmesi ve fixture verileri doğrulandı. Aktif gerçek Antigravity oturumunda uçtan uca çalışma `Doğrulanması gerekiyor`.

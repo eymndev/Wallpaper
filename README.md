@@ -5,7 +5,7 @@
 **Mac masaüstün için yaşayan, nefes alan ASCII sanatı.**
 
 CPU'na göre hızlanan dalgalar, indirme hızıyla yoğunlaşan yağmur, köşede saat ve sistem paneli.<br>
-Bir de Claude Code çalışırken köşede yürüyen Clawd.
+Claude Code, Codex ve Antigravity çalışırken köşede canlı oturum panelleri.
 
 ![macOS 13+](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)
 ![Swift](https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white)
@@ -21,7 +21,7 @@ Bir de Claude Code çalışırken köşede yürüyen Clawd.
 
 <img src="docs/hero.jpg" alt="ASCII Wallpaper: Hypr · Kath teması, saat, sistem paneli ve Claude Code paneli" width="100%">
 
-[Kurulum](#kurulum) · [Temalar](#temalar) · [Telefon ve tablet](#telefon-ve-tablet-duvar-kağıtları) · [Tema paketleri](#tema-paketleri) · [Claude Code paneli](#claude-code-paneli) · [Ekran koruyucu](#ekran-koruyucu) · [riceutil](#riceutil-ile-yönetmek) · [Geliştirme](#geliştirme)
+[Kurulum](#kurulum) · [Temalar](#temalar) · [Telefon ve tablet](#telefon-ve-tablet-duvar-kağıtları) · [Tema paketleri](#tema-paketleri) · [AI oturum panelleri](#ai-oturum-panelleri) · [Ekran koruyucu](#ekran-koruyucu) · [riceutil](#riceutil-ile-yönetmek) · [Geliştirme](#geliştirme)
 
 </div>
 
@@ -29,7 +29,7 @@ Bir de Claude Code çalışırken köşede yürüyen Clawd.
 
 - 🎨 **25 tema, üç paket**: 13 özgün sahne her kurulumda gelir (Klasik). Hyprland duvar kağıdı yarışmasının 9 kazanan görselinden üretilmiş ASCII sürümler (Hyprland paketi) Death Note'tan Misa Train ile Light Yagami ve One Piece'ten Thousand Sunny (Anime paketi) [ayrı indirilir](#tema-paketleri).
 - 📈 **Canlı sistem verisi**: CPU, RAM, pil, ağ, çalan şarkı (Spotify / Müzik) ve hava durumu. Temaların çoğu bu veriye tepki verir.
-- 🦀 **Claude Code paneli**: Claude Code çalışırken ne yaptığı, son düşüncesi, süre ve token. Yanında yürüyen Clawd.
+- 🦀 **AI oturum panelleri**: Claude Code, Codex ve Antigravity için çalışma durumu, son mesaj, süre ve mevcut token verileri. Claude Code yanında yürüyen Clawd.
 - 🌙 **Ekran koruyucu**: Aynı temalar `.saver` olarak, web görünümü olmadan JavaScriptCore + Core Text ile çizilir.
 - 📱 **Telefon ve tablet**: Her temanın 4096x4096 PNG'si, iPhone, Android ve iPad'de aynı dosya ([mobile/](mobile)).
 - 🖥️ **Çoklu ekran**, menü çubuğu simgesi, temaları sırayla değiştirme, oturum açılışında başlatma.
@@ -69,7 +69,7 @@ Uygulama Dock'ta görünmez. Menü çubuğundaki ızgara simgesinden şunları y
 
 - Tema seçmek ya da sonraki temaya geçmek
 - Temaları 10 dakikada, 30 dakikada ya da saatte bir otomatik değiştirmek
-- Sistem panelini, saati, sağ alt köşedeki tema adını ve Claude Code panelini açıp kapatmak
+- Sistem panelini, saati, sağ alt köşedeki tema adını ve Claude Code / Codex / Antigravity panellerini ayrı ayrı açıp kapatmak
 - Oturum açılışında otomatik başlatmak
 
 Çalan şarkıyı ilk kez okurken macOS, Spotify veya Müzik için otomasyon izni ister.
@@ -163,7 +163,11 @@ riceutil olmadan, depo klasöründe:
 ./scripts/pack.sh remove anime
 ```
 
-## Claude Code paneli
+## AI oturum panelleri
+
+Claude Code, Codex ve Antigravity için ayrı paneller vardır; aynı anda birden çok ajan çalışıyorsa uygun boş alanlara yerleşirler. Dar ekranlarda meşgul ajan önceliklidir, sığmayan panel gizlenir. Menüde ve ekran koruyucunun Seçenekler penceresinde her sağlayıcı ayrı kapatılabilir (`showClaude`, `showCodex`, `showAntigravity`; varsayılan açık).
+
+### Claude Code
 
 <img src="docs/claude-panel.jpg" alt="Claude Code paneli: Clawd, durum, çalışan araç, düşünce, süre ve token" width="440" align="right">
 
@@ -187,6 +191,16 @@ Veri `~/.claude/sessions/*.json` (açık oturumlar) ve `~/.claude/projects/<proj
 
 </details>
 
+### Codex
+
+Codex masaüstü uygulaması ve CLI tarafından `~/.codex/sessions` altına yazılan `rollout-*.jsonl` kayıtları okunur; özel `CODEX_HOME` kullanımı da desteklenir. Model, proje, araç, son mesaj veya kayda yazılan düşünce özeti, tur/oturum süresi ve token kullanımı gösterilir. Alt ajan kayıtları ana oturumun yerini almaz. Tam düşünce zinciri veya şifreli içerik okunmaz. Token toplamına önbellekten tekrar okunan tokenlar eklenmez; bağlam alanı son model çağrısının toplamıdır.
+
+### Antigravity
+
+Antigravity masaüstü, CLI ve IDE için `~/.gemini/antigravity`, `~/.gemini/antigravity-cli`, `~/.gemini/antigravity-ide` altındaki `conversation_summaries.db` salt okunur açılır. Konuşmanın çalışma durumu ve proje bilgisi buradan, son mesaj ve tokenlar `brain/<konuşma>/.system_generated/logs/transcript.jsonl` dosyasından alınır. Model veya araç ayrıntısı yalnız kayıtta yapılandırılmış alan olarak varsa gösterilir; eksik süre/token değerleri `—` olur. Hook, API anahtarı ve ek yapılandırma gerekmez. Transcript konumları [Antigravity belgelerinde](https://antigravity.google/docs/hooks) açıklanır.
+
+Her iki sağlayıcıda en son 15 dakika içinde etkinliği olan ana oturumlardan meşgul olan, sonra en güncel olan seçilir. Bu kaynaklar yerel kayıt biçimlerine bağımlıdır; biçim değişikliği okuyucunun güncellenmesini gerektirebilir. Kimlik doğrulama dosyaları okunmaz, hiçbir oturum dosyasına yazılmaz. Tarayıcıda `?codex=demo`, `?antigravity=demo` veya üçünü birlikte `?claude=demo&codex=demo&antigravity=demo` kullanabilirsin.
+
 ## Ekran koruyucu
 
 Aynı temalar macOS ekran koruyucusu olarak da var (`scripts/install.sh` bunu zaten kurar):
@@ -195,7 +209,7 @@ Aynı temalar macOS ekran koruyucusu olarak da var (`scripts/install.sh` bunu za
 ./scripts/build-saver.sh --install
 ```
 
-Sonra Sistem Ayarları → Ekran Koruyucu'dan "ASCII Wallpaper"ı seç. "Seçenekler" düğmesinden tema (ya da her açılışta rastgele tema), sistem paneli, saat, köşedeki tema adı ve Claude Code paneli ayarlanır. Ekran koruyucu CPU, RAM, pil, ağ ve Claude Code bilgisini gösterir; çalan şarkı ve hava durumu yalnızca duvar kağıdı uygulamasında var.
+Sonra Sistem Ayarları → Ekran Koruyucu'dan "ASCII Wallpaper"ı seç. "Seçenekler" düğmesinden tema (ya da her açılışta rastgele tema), sistem paneli, saat, köşedeki tema adı ve AI oturum panelleri ayrı ayrı ayarlanır. Ekran koruyucu CPU, RAM, pil, ağ ve AI oturum bilgisini gösterir; çalan şarkı ve hava durumu yalnızca duvar kağıdı uygulamasında var.
 
 Derlemek istemezsen GitHub Actions'taki "ASCII-Wallpaper-Saver" çıktısını indirip `.saver` dosyasına çift tıklayabilirsin. İmzasız olduğu için macOS engellerse önce şunu çalıştır:
 
@@ -288,12 +302,22 @@ Tema ekledikten sonra:
 4. `node scripts/mobile.cjs benim-tema`: telefon ve tabletler için `mobile/benim-tema.png` (4096x4096) üretir (Playwright ve Pillow gerekir). Görsel temalarda ana figür ortadan kaçıyorsa `scripts/mobile.cjs` içindeki `FOCUS` tablosuna yatay konumunu (0..1) yaz.
 5. `npm test`: her temayı farklı ekran boyutlarında tarayıcı olmadan çalıştırıp hatasız çizdiğini kontrol eder.
 
+### Oturum okuyucu testleri (macOS)
+
+```bash
+mkdir -p build
+swiftc mac/Sources/AsciiWallpaper/AgentMonitor.swift tests/agents.swift -o build/check-agents
+./build/check-agents
+```
+
+Geçici kayıtlarla durum geçişleri, kısmi JSONL satırı, dosyanın yeniden yazılması, token tekrarlarını önleme, alt ajan filtreleme, Antigravity SQLite durumları ve eski oturumları gizleme doğrulanır. `./build/check-agents --live` ayrıca canlı Codex kaydını içerik yazdırmadan kontrol eder.
+
 ### Yapı
 
 ```
 web/            Duvar kağıdı sayfası (motor, arayüz, Klasik temalar)
 packs/          Ayrı indirilen tema paketleri (hyprland, anime)
-mac/            Swift uygulaması (masaüstü penceresi, istatistikler, Claude Code izleyici, menü)
+mac/            Swift uygulaması (masaüstü penceresi, istatistikler, AI oturum izleyicileri, menü)
 mac/Saver/      Ekran koruyucu (.saver)
 scripts/        Derleme, kurulum, paket, tema listesi ve görselden tema üretme betikleri
 tests/          Node testleri

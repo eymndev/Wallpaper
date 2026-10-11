@@ -43,16 +43,17 @@
   }
 
   // Tarayıcıda ?claude=demo: Claude Code panelini örnek veriyle göster
-  if (params.get("claude") === "demo") {
-    S.claude = {
-      project: "Wallpaper", model: "opus-5-5", state: "thinking", thoughtKind: "thinking", tool: "", lastTool: "Bash: npm test",
+  for (const provider of ["claude", "codex", "antigravity"]) {
+    if (params.get(provider) !== "demo") continue;
+    S[provider] = {
+      project: "Wallpaper", model: provider === "claude" ? "opus-5-5" : provider === "codex" ? "gpt-6" : "gemini", state: "thinking", thoughtKind: "thinking", tool: "", lastTool: "Bash: npm test",
       thought: "Panel sağ altta duruyor; sistem paneliyle çakışmıyorsa orada kalsın, yoksa sol alta geçsin.",
       tokens: 184200, output: 12400, context: 96100, turn: 74, session: 1520,
     };
     const steps = [["thinking", ""], ["tool", "Read: ui.js"], ["writing", ""], ["tool", "Bash: npm test"], ["waiting", ""]];
     let i = 0;
     setInterval(() => {
-      const c = S.claude;
+      const c = S[provider];
       if (S.live) return;
       if (++i % 5 === 0) [c.state, c.tool] = steps[(i / 5) % steps.length];
       if (c.tool) c.lastTool = c.tool;
