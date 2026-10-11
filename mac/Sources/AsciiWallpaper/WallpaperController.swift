@@ -25,6 +25,7 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
     private var track: String?
     private var timers: [Timer] = []
     private var lastRotation = Date()
+    private var screensChangePending: Task<Void, Never>?
 
     private let defaults = UserDefaults.standard
 
@@ -64,6 +65,16 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
         set { defaults.set(newValue, forKey: "showAntigravity"); tick() }
     }
 
+    /// Etkin temanın sabit PNG'si macOS'un masaüstü resmi olur: kilit ekranında da tema görünür (bkz. DesktopPicture).
+    /// Kapatınca kullanıcının önceki masaüstü resmi geri gelir.
+    var showOnLockScreen: Bool {
+        get { defaults.object(forKey: "desktopPicture") as? Bool ?? true }
+        set {
+            defaults.set(newValue, forKey: "desktopPicture")
+            if newValue { updateDesktopPicture() } else { DesktopPicture.restore(defaults) }
+        }
+    }
+
     /// 0 = kapalı, aksi halde dakika cinsinden tema değiştirme aralığı
     var rotateMinutes: Int {
         get { defaults.integer(forKey: "rotateMinutes") }
@@ -85,6 +96,8 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
         workspace.addObserver(self, selector: #selector(pause), name: NSWorkspace.sessionDidResignActiveNotification, object: nil)
         workspace.addObserver(self, selector: #selector(resume), name: NSWorkspace.screensDidWakeNotification, object: nil)
         workspace.addObserver(self, selector: #selector(resume), name: NSWorkspace.sessionDidBecomeActiveNotification, object: nil)
+        // Masaüstü resmi Space başınadır; yeni Space'e geçince orada da temanın resmi olsun
+        workspace.addObserver(self, selector: #selector(updateDesktopPicture), name: NSWorkspace.activeSpaceDidChangeNotification, object: nil)
         DistributedNotificationCenter.default().addObserver(
             self, selector: #selector(remoteCommand(_:)), name: Self.commandNotification, object: nil,
             suspensionBehavior: .deliverImmediately)
@@ -100,18 +113,47 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
 
     // MARK: Pencereler
 
+    /// macOS bu bildirimi yalnız ekran takılıp çıkınca değil, uykudan uyanma, çözünürlük, Dock ya da menü çubuğu
+    /// değişince de (çoğu zaman art arda birkaç kez) gönderir. Her seferinde pencereleri baştan kurmak sayfaları
+    /// yeniden yüklüyordu: duvar kağıdı kararıp tema bildirimiyle yeniden açılıyordu. Artık yalnız eklenen ekrana
+    /// pencere açılır, çıkanınki kapanır; kalanlar yerinde yeniden boyutlanır (sayfa kendi `resize`'ını yapar).
     @objc private func screensChanged() {
-        rebuildWindows()
+        screensChangePending?.cancel()
+        screensChangePending = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 500_000_000) // art arda gelen bildirimleri tek seferde işle
+            guard !Task.isCancelled else { return }
+            self?.syncWindows()
+        }
+    }
+
+    private func syncWindows() {
+        let screens = NSScreen.screens
+        var kept: [WallpaperWindow] = []
+        var packScript: String?
+        for screen in screens {
+            if let window = windows.first(where: { $0.displayID == screen.displayID && !kept.contains($0) }) {
+                if window.frame != screen.frame { window.setFrame(screen.frame, display: true) }
+                kept.append(window)
+            } else {
+                if packScript == nil { packScript = ThemePacks.pageScript() }
+                kept.append(makeWindow(screen, packScript: packScript ?? ""))
+            }
+        }
+        windows.filter { !kept.contains($0) }.forEach { $0.close() }
+        windows = kept
+        updateDesktopPicture() // eklenen ekranın masaüstü resmi
     }
 
     private func rebuildWindows() {
         windows.forEach { $0.close() }
         let packScript = ThemePacks.pageScript()
-        windows = NSScreen.screens.map { screen in
-            let window = WallpaperWindow(screen: screen, webDirectory: webDirectory, packScript: packScript, messageHandler: WeakHandler(self))
-            window.orderBack(nil)
-            return window
-        }
+        windows = NSScreen.screens.map { makeWindow($0, packScript: packScript) }
+    }
+
+    private func makeWindow(_ screen: NSScreen, packScript: String) -> WallpaperWindow {
+        let window = WallpaperWindow(screen: screen, webDirectory: webDirectory, packScript: packScript, messageHandler: WeakHandler(self))
+        window.orderBack(nil)
+        return window
     }
 
     private func broadcast(_ script: String) {
@@ -164,6 +206,15 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
         rebuildWindows()
     }
 
+    /// Etkin temanın PNG'sini sistemin masaüstü resmi yapar (zaten oysa bir şey yapmaz). Tema listesi gelmeden
+    /// ya da kayıtlı tema listede yokken (kaldırılan paket) atlanır; sayfa temayı bildirince yeniden çağrılır.
+    @objc func updateDesktopPicture() {
+        guard showOnLockScreen, let theme = themes.first(where: { $0.id == themeID }),
+              let source = DesktopPicture.source(theme: theme.id, pack: theme.pack, webDirectory: webDirectory)
+        else { return }
+        DesktopPicture.show(source, theme: theme.id, defaults: defaults)
+    }
+
     @objc func pause() { broadcast("window.wallpaper && wallpaper.setPaused(true)") }
     @objc func resume() { broadcast("window.wallpaper && wallpaper.setPaused(false)") }
 
@@ -213,6 +264,8 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
             // Sayfa eski bir kimliği yenisine çevirdiyse (adı değişen tema) kayıtlı ayarı da güncelle
             themeID = id
         }
+        // Sayfa her tema değişiminde (menü, riceutil, sırayla değiştirme, kaldırılan paketten düşme) bunu gönderir
+        if type == "theme" { updateDesktopPicture() }
         if type == "ready" {
             if let list = body["themes"] as? [[String: Any]] {
                 themes = list.compactMap { item in
@@ -233,6 +286,7 @@ final class WallpaperController: NSObject, WKScriptMessageHandler {
             wallpaper.setThemeName(\(showThemeName));
             """, completionHandler: nil)
             tick()
+            updateDesktopPicture()
         }
     }
 

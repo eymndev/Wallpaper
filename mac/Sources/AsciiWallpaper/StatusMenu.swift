@@ -73,6 +73,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         menu.addItem(toggle("Claude Code panelini göster", controller.showClaude, #selector(toggleClaude)))
         menu.addItem(toggle("Codex panelini göster", controller.showCodex, #selector(toggleCodex)))
         menu.addItem(toggle("Antigravity panelini göster", controller.showAntigravity, #selector(toggleAntigravity)))
+        menu.addItem(toggle("Kilit ekranında da göster", controller.showOnLockScreen, #selector(toggleLockScreen)))
         menu.addItem(toggle("Oturum açılışında başlat", SMAppService.mainApp.status == .enabled, #selector(toggleLogin)))
         menu.addItem(.separator())
         menu.addItem(action("Çıkış", #selector(quit), key: "q"))
@@ -102,6 +103,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     @objc private func toggleClaude() { controller.showClaude.toggle() }
     @objc private func toggleCodex() { controller.showCodex.toggle() }
     @objc private func toggleAntigravity() { controller.showAntigravity.toggle() }
+    @objc private func toggleLockScreen() { controller.showOnLockScreen.toggle() }
 
     @objc private func toggleLogin() {
         let service = SMAppService.mainApp
