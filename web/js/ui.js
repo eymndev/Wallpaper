@@ -122,7 +122,13 @@
     waiting: "seni bekliyor",
   };
   AW.claudePanelHeight = 15;
+  const AGENTS = {
+    claude: { title: "CLAUDE CODE", color: CLAWD.color, icon: "▐▛███▜▌" },
+    codex: { title: "CODEX", color: "#75d9ac", icon: "[ >_ ]" },
+    antigravity: { title: "ANTIGRAVITY", color: "#9fafff", icon: " /\\/\\ " },
+  };
 
+  const metric = (value, format) => Number.isFinite(value) ? format(value) : "—";
   const fmtTokens = (n) => (n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "k" : String(n | 0));
   const fmtDur = (s) => {
     s = Math.max(0, s | 0);
@@ -174,29 +180,36 @@
     }
   }
 
-  function claudePanel(g, x, y, W, t, C, ui) {
+  function claudePanel(g, x, y, W, t, C, ui, provider = "claude") {
+    const agent = AGENTS[provider] || AGENTS.claude;
     const H = AW.claudePanelHeight, inner = W - 4;
     const fit = (s) => (s.length > inner ? s.slice(0, inner - 1) + "…" : s);
-    const title = ` CLAUDE CODE${C.project ? " · " + C.project : ""} `.slice(0, W - 4);
+    const title = ` ${agent.title}${C.project ? " · " + C.project : ""} `.slice(0, W - 4);
 
     g.fillBg(x, y, W, H, ui.panel);
     g.put(x, y, "┌─" + "─".repeat(W - 3) + "┐", ui.frame);
-    g.put(x + 2, y, title, CLAWD.color);
+    g.put(x + 2, y, title, agent.color);
     for (let i = 1; i < H - 1; i++) { g.put(x, y + i, "│", ui.frame); g.put(x + W - 1, y + i, "│", ui.frame); }
     g.put(x, y + H - 1, "└" + "─".repeat(W - 2) + "┘", ui.frame);
 
     // Satır 1-4: Clawd
-    clawd(g, x + 2, y + 1, inner, t, C);
+    if (provider === "claude") clawd(g, x + 2, y + 1, inner, t, C);
+    else {
+      const busy = C.state !== "waiting";
+      const px = x + 2 + Math.round((inner - agent.icon.length) * (0.5 + (busy ? Math.sin(t * 1.5) * 0.4 : 0)));
+      g.put(px, y + 2, agent.icon, agent.color);
+      g.put(px, y + 3, busy ? "· · ·" : " zZ ", ui.dim);
+    }
 
     // Satır 5: durum
     let r = y + 5;
     const busy = C.state !== "waiting";
     const spin = busy ? SPIN[Math.floor(t * 8) % SPIN.length] : "✻";
     const dots = busy ? ".".repeat(1 + (Math.floor(t * 2) % 3)) : "";
-    g.put(x + 2, r, spin, CLAWD.color);
+    g.put(x + 2, r, spin, agent.color);
     g.put(x + 4, r, fit((STATES[C.state] || C.state || "") + dots), busy ? ui.ink : ui.dim);
     if (C.model) {
-      const m = C.model.slice(0, 16);
+      const m = C.model.slice(0, 12);
       g.put(x + W - 2 - m.length, r, m, ui.dim);
     }
 
@@ -216,8 +229,8 @@
 
     // Satır 11: ayraç, 12-13: süre ve token
     g.put(x, r, "├" + "─".repeat(W - 2) + "┤", ui.frame);
-    g.put(x + 2, r + 1, fit(`⏱ tur ${fmtDur(C.turn)}  ·  oturum ${fmtDur(C.session)}`), ui.ink);
-    const tok = `◆ ${fmtTokens(C.tokens || 0)} token  ↓ ${fmtTokens(C.output || 0)}  bağlam ${fmtTokens(C.context || 0)}`;
+    g.put(x + 2, r + 1, fit(`⏱ tur ${metric(C.turn, fmtDur)}  ·  oturum ${metric(C.session, fmtDur)}`), ui.ink);
+    const tok = `◆ ${metric(C.tokens, fmtTokens)} token  ↓ ${metric(C.output, fmtTokens)}  bağlam ${metric(C.context, fmtTokens)}`;
     g.put(x + 2, r + 2, fit(tok), ui.accent);
     return H;
   }
@@ -229,7 +242,8 @@
     ui = Object.assign({}, AW.defaultUI, ui || {});
     const cx = 4, cy = 2;
     let bottom = cy;
-    let rightBottom = 0; // sağ üstteki sistem panelinin alt satırı
+    const occupied = [];
+    const overlaps = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
     if (opts.showClock !== false && g.cols >= 40 && g.rows >= 14) {
       // Görselin önemli kısmı sol üstteyse tema saati sol alta alabilir
@@ -244,21 +258,36 @@
       g.put(cx, ky + 6, date, ui.dim);
       g.put(cx, ky + 7, "─".repeat(date.length), ui.frame);
       if (ky === cy) bottom = cy + 10;
+      occupied.push({ x: cx - 2, y: ky - 1, w: w + 4, h: 10 });
     }
 
     if (opts.showPanel !== false && g.cols >= 40 && g.rows >= 20) {
       const W = Math.min(40, g.cols - 6);
-      if (g.cols >= 100) rightBottom = cy + panel(g, g.cols - W - 4, cy, W, t, S, ui);
-      else bottom += 1 + panel(g, cx - 2, bottom + 1, W, t, S, ui);
+      const x = g.cols >= 100 ? g.cols - W - 4 : cx - 2;
+      const y = g.cols >= 100 ? cy : bottom + 1;
+      const h = panel(g, x, y, W, t, S, ui);
+      occupied.push({ x, y, w: W, h });
+      if (g.cols < 100) bottom += 1 + h;
     }
 
-    // Claude Code çalışıyorsa sağ altta (tema adının üstünde); yer yoksa sol altta, o da yoksa hiç
-    if (S.claude && g.cols >= 50 && g.rows >= AW.claudePanelHeight + 6) {
+    // Her sağlayıcının paneli sağ alttan yerleştirilir; saat/sistem paneli ve diğer ajanlarla çakışmaz.
+    const agents = Object.keys(AGENTS).filter((key) => S[key]).sort((a, b) =>
+      Number(S[b].state !== "waiting") - Number(S[a].state !== "waiting"));
+    if (g.cols >= 50 && g.rows >= AW.claudePanelHeight + 6) {
       const W = Math.min(48, g.cols - 6), H = AW.claudePanelHeight;
-      const y = g.rows - H - 4, xr = g.cols - W - 4;
-      // Sol sütun (saat + dar ekranda sistem paneli) en çok ~44 hücre genişliğinde
-      if (y > rightBottom && (y > bottom || xr > cx + 44)) claudePanel(g, xr, y, W, t, S.claude, ui);
-      else if (y > bottom && g.cols >= W * 2 + 12) claudePanel(g, cx - 2, y, W, t, S.claude, ui);
+      for (const provider of agents) {
+        let placed = false;
+        for (let y = g.rows - H - 4; y >= 2 && !placed; y -= H + 1) {
+          for (let x = g.cols - W - 4; x >= 2; x -= W + 2) {
+            const rect = { x, y, w: W, h: H };
+            if (occupied.some((other) => overlaps(rect, other))) continue;
+            claudePanel(g, x, y, W, t, S[provider], ui, provider);
+            occupied.push(rect);
+            placed = true;
+            break;
+          }
+        }
+      }
     }
 
     // Sağ alt köşede etkin temanın adı
