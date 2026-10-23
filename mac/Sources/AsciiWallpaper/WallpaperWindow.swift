@@ -36,6 +36,16 @@ final class WallpaperWindow: NSWindow, WKNavigationDelegate {
         webView.loadFileURL(index, allowingReadAccessTo: webDirectory)
     }
 
+    /// Mesaj işleyicisi kayıtlı kalırsa WebKit kullanıcı içerik denetleyicisini (içinde paketlerin ~MB'lık betiğiyle)
+    /// pencere kapansa da bırakmıyor: sayfalar her baştan kurulduğunda (paket değişimi, eski sürümlerde her ekran
+    /// değişimi) uygulamanın belleği birkaç MB büyüyordu ve günler içinde GB'lara çıkıyordu.
+    override func close() {
+        let controller = webView.configuration.userContentController
+        controller.removeScriptMessageHandler(forName: "aw")
+        controller.removeAllUserScripts()
+        super.close()
+    }
+
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
