@@ -58,6 +58,7 @@ Swift kodu Linux/bulut ortamında derlenemez; Swift değişiklikleri yalnızca m
 - **Kilit ekranı = sistemin masaüstü resmi.** Hareketli duvar kağıdı bir penceredir; kilit/giriş ekranı ve uygulamanın çizmediği anlar macOS'un masaüstü resmini gösterir. Uygulama sayfa her `theme` mesajı gönderdiğinde (ve `ready`, Space değişimi, ekran eklenince) etkin temanın PNG'sini `~/Library/Application Support/ASCII Wallpaper/desktop/<tema>-<boyut>.png` olarak kopyalayıp `NSWorkspace.setDesktopImageURL` ile tüm ekranlara verir; zaten oysa dokunmaz. Kopyalanır ki uygulama güncellenirken/paket kaldırılınca dosya kaybolmasın; adındaki boyut PNG yeniden üretilince macOS'un eski görüntüyü önbellekten göstermesini önler. Masaüstü resmi Space başına olduğu için Space değişimi dinlenir.
 - **Claude Code verisi:** `update(...)` verisindeki `claude` alanı (yoksa `null`) panelin tek kaynağıdır; panel yalnızca bu alan doluyken çizilir. Veri `~/.claude/sessions/*.json` + oturum kaydı JSONL'den okunur; bunlar Claude Code'un belgelenmemiş iç dosyalarıdır, biçim değişirse `ClaudeMonitor.swift` güncellenmeli. Claude masaüstü uygulamasının Code sekmesi aynı dosyaları aynı biçimde yazar (`entrypoint: claude-desktop`, `hostSessionId: local_...`); ayrı bir yol, hook ya da mod gerekmez. Klasörsüz masaüstü oturumları `~/Library/Application Support/Claude/scratch-workspaces/...` altında çalışır; panel başlığı onlarda `~/Library/Application Support/Claude/claude-code-sessions/*/*/<hostSessionId>.json` içindeki `title`'ı kullanır. Ekran koruyucu süreci korumalı alanda ama `/` altını salt okunur okuyabiliyor (legacyScreenSaver yetkisi); orada `NSHomeDirectory()` kapsayıcıyı gösterdiği için ev dizini `getpwuid` ile bulunur. Token toplamı önbellekten okunan tokenları saymaz (her çağrıda tekrar sayılırdı).
 - **Ekran değişince pencereleri baştan kurma.** `didChangeScreenParametersNotification` uyanma, Dock, Space gibi durumlarda da art arda gelir; `WallpaperController.syncWindows` pencereleri ekran kimliğiyle eşleyip yalnız boyutlar, eklenen/çıkan ekran için açar/kapatır. Baştan kurmak (`rebuildWindows`) yalnız açılışta ve `packs reload`da yapılır.
+- **Pencere kapanırken WebKit kaydını temizle.** `WallpaperWindow.close()` `aw` mesaj işleyicisini ve kullanıcı betiklerini kaldırır. Kaldırılmazsa WebKit kullanıcı içerik denetleyicisini (paketlerin ~3 MB'lık `AW_PACKS` betiğiyle) pencere kapansa da bırakmıyor; her baştan kurulum uygulama sürecinde ~3,4 MB sızıntıydı. Pencere/web görünümü kuran yeni kodda da aynı temizliği yap.
 - **Codex / Antigravity verisi:** `update(...)` içindeki `codex` ve `antigravity` alanları ayrı panellere gider (yoksa `null`). Codex `~/.codex/sessions` veya `CODEX_HOME/sessions` rollout kayıtlarını artımlı okur; alt ajanlar hariç. Antigravity masaüstü/CLI/IDE veri köklerindeki `conversation_summaries.db` salt okunur SQLite ile ve `brain/<id>/.system_generated/logs/transcript.jsonl` değişince yeniden okuyarak izlenir. 15 dakika etkinliği olmayan oturumlar gizlenir; meşgul ana oturum önceliklidir. Eksik ölçümler `null` → `—`; cache tokenları toplama tekrar eklenmez. Model/araç ayrıntısı yalnız kayıtta varsa gösterilir. Kimlik doğrulama dosyaları okunmaz. Kaynak biçimleri değişebilir.
 - Hava durumu anahtarsız Open-Meteo kullanır; depoya API anahtarı veya sır ekleme.
 - **Kullanıcıya verilen terminal komutlarında yer tutucu yol kullanma** (`/klasorunun/yolu` gibi); kullanıcı komutları olduğu gibi yapıştırır. Gerçek yollar ver.
@@ -632,3 +633,27 @@ Mevcut Claude Code panelinin yanında Codex ve Antigravity oturumlarını duvar 
 
 #### Bilinen sorunlar ve sonraki adımlar
 - Aktif gerçek Antigravity oturumu yoktu; mevcut eski oturumun gizlenmesi ve fixture verileri doğrulandı. Aktif gerçek Antigravity oturumunda uçtan uca çalışma `Doğrulanması gerekiyor`.
+
+### 2026-10-23 — Uygulamanın belleği 2 GiB'a çıkıyordu
+
+#### Amaç
+Kullanıcı ASCII Wallpaper'ın 2 GiB kullandığını bildirdi. Nedenini ölçerek bulmak ve düzeltmek; temalar, ekran koruyucu ve riceutil kapsam dışı.
+
+#### Yapılanlar
+- `mac/Sources/AsciiWallpaper/WallpaperWindow.swift`: `close()` mesaj işleyicisini ve kullanıcı betiklerini kaldırıyor.
+
+#### Hedef durumu
+- [x] Sızıntı ayrı bir denemede ve gerçek uygulamada yeniden üretildi, düzeltme ölçüldü.
+- [ ] Kurulu uygulamanın güncellenmesi (`riceutil wallpaper update`) kullanıcıda.
+
+#### Teknik kararlar
+- Disk değil bellek: kurulu uygulama, paketler, klon ve önbellekler toplam ~280 MB; macOS duvar kağıdı önbelleklerindeki BMP'ler ASCII Wallpaper'dan önceye ait.
+- Neden: `WKUserScript` + `add(_:name:)` birlikteyken WebKit kapanan web görünümünün kullanıcı içerik denetleyicisini bırakmıyor (yalnız betik ya da yalnız işleyici sızdırmıyor). Kurulu sürüm (2026-10-11 22:01) #14'ten önce derlenmişti ve her `didChangeScreenParameters` (uyanma, Dock, ekran) bildiriminde pencereleri baştan kuruyordu; her kurulum ~3,4 MB bırakıyordu.
+- Saniyelik `evaluateJavaScript(update(...))` da denendi: yalnız boş sayfalı ayrı denemede çağrı başına ~2 KB büyüdü, gerçek uygulamada (100 Hz, 9.000 çağrı) büyümedi; değiştirilmedi.
+
+#### Testler
+- `npm test`: 70 test geçti. Swift değişikliği `swift build -c release` ve `scripts/build-app.sh` ile derlendi.
+- 30 kez `packs reload`: düzeltme öncesi uygulama süreci 42 → 145 MB, sonrası 41 → 31 MB; paket teması (`hypr-end4`) yeniden kurulumdan sonra açılıyor.
+
+#### Bilinen sorunlar ve sonraki adımlar
+- Sızıntının WebKit içindeki kesin nedeni `Belirsiz`; temizlik bunu ölçülerek gideriyor.
